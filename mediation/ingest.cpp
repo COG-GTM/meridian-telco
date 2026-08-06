@@ -2,9 +2,9 @@
 #include <cstdlib>
 #include <string>
 #include "store.h"
-#include "capacity.h"
 #include "status.h"
 #include "circuit_counter.h"
+#include "unified_inventory_rules/capacity.h"
 
 /* nightly mediation run. reads the element telemetry drops out of /data and
    rebuilds the local store. cron: 0 2 * * * */
@@ -46,7 +46,9 @@ int main(int argc, char **argv) {
   printf("  circuits loaded   : %d\n", (int)circuits.size());
   printf("  active circuits   : %d\n", count_active_circuits(circuits));
   printf("  active capacity   : %d mbps\n", sum_active_capacity(circuits));
-  printf("  available capacity: %d mbps\n", available_capacity((int)total, (int)alloc));
-  printf("  utilization       : %d%%\n", utilization_pct((int)total, (int)alloc));
+  printf("  available capacity: %d mbps\n",
+         unified_inventory_rules::available_capacity((int)total, (int)alloc));
+  printf("  utilization       : %.2f%%\n",
+         unified_inventory_rules::utilization_pct((int)total, (int)alloc));
   return 0;
 }

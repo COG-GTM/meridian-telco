@@ -17,8 +17,15 @@ a browser with inventory-api and invoice-api running.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
-available = total - allocated, we do not hold back a maintenance buffer.
-serviceable locations come from data/locations.csv.
+available = total - allocated - maintenance buffer. the arithmetic is not ours
+any more, it comes from the shared unified-inventory-rules repo, vendored as a
+submodule under third_party/ and compiled into the mediation objects. vantage
+calls the same rule, so both desks quote the same number.
+
+  git submodule update --init   (first checkout, and after pulling a bump)
+
+serviceable locations come from data/locations.csv, MAINT_BUF_MBPS is the
+capacity held back for maintenance windows.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
 

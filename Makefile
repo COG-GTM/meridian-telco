@@ -1,9 +1,10 @@
 CXX = g++
-CXXFLAGS = -O2 -Wall
+RULES = third_party/unified-inventory-rules
+CXXFLAGS = -O2 -Wall -I$(RULES)/cpp/include
 LDFLAGS = -lsqlite3
 BIN = bin
 
-MEDIATION_OBJS = mediation/capacity.o mediation/status.o mediation/circuit_counter.o mediation/store.o mediation/locations.o
+MEDIATION_OBJS = $(RULES)/cpp/src/capacity.o mediation/status.o mediation/circuit_counter.o mediation/store.o mediation/locations.o
 BILLING_OBJS = billing/rating.o billing/discounts.o billing/accounts.o
 
 all: $(BIN)/mediation $(BIN)/inventory-api $(BIN)/billing-run $(BIN)/invoice-api $(BIN)/ipam
@@ -33,6 +34,6 @@ run: all
 	$(BIN)/mediation --data data --db meridian.db
 
 clean:
-	rm -f $(BIN)/* */*.o */*/*.o meridian.db
+	rm -f $(BIN)/* */*.o */*/*.o $(RULES)/cpp/src/*.o meridian.db
 
 .PHONY: all run clean

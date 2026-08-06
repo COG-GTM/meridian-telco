@@ -1,0 +1,4 @@
+[submodule "third_party/unified-inventory-rules"]
+	path = third_party/unified-inventory-rules
+	url = https://github.com/joannayang371/unified-inventory-rules
+	branch = main
