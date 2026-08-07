@@ -1,0 +1,4 @@
+[submodule "external/unified-inventory-rules"]
+	path = external/unified-inventory-rules
+	url = https://github.com/joannayang371/unified-inventory-rules.git
+	branch = devin/1786072171-shared-capacity-logic

@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <string>
 #include "store.h"
-#include "capacity.h"
+#include "inventory_rules/capacity.h"
 #include "status.h"
 #include "circuit_counter.h"
 
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   printf("  circuits loaded   : %d\n", (int)circuits.size());
   printf("  active circuits   : %d\n", count_active_circuits(circuits));
   printf("  active capacity   : %d mbps\n", sum_active_capacity(circuits));
-  printf("  available capacity: %d mbps\n", available_capacity((int)total, (int)alloc));
-  printf("  utilization       : %d%%\n", utilization_pct((int)total, (int)alloc));
+  printf("  available capacity: %d mbps\n", inventory_rules::available_capacity((int)total, (int)alloc));
+  printf("  utilization       : %g%%\n", inventory_rules::utilization_pct((int)total, (int)alloc));
   return 0;
 }

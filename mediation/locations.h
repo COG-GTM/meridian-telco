@@ -13,6 +13,7 @@ struct Location {
   std::string market_cd;
   int total_cap_mbps;
   int alloc_cap_mbps;
+  int maint_buffer_mbps;
 };
 
 std::vector<Location> load_locations(const std::string &csv_path);
