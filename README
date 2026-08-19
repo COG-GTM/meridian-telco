@@ -26,21 +26,34 @@ serviceable locations come from data/locations.csv.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
 
-billing rules, one file each, all of them go through billing/invoice.cpp:
+the billing rules are no longer ours alone. they live in the shared library
+COG-GTM/telco-billing-rules, vendored into billing/vendor and used by
+vantage-telco too, so the two registers cannot drift apart again.
+billing/invoice.cpp only maps our account and usage records onto it:
 
-  rating.cpp      whole gigabytes, partial gigs round up, $10 a gig over plan
-  proration.cpp   30 day billing month, mid cycle plan changes split on it
-  promo.cpp       promo credits expire at the end of the cycle they were issued
-  suspension.cpp  a suspended line is billed the full month, no credit
-  lines.cpp       3-9 lines 5% off recurring, 10+ lines 10%
-  latefee.cpp     10 day grace after the due date, then 1.5% of the balance
-  tax.cpp         GST/HST on the pre discount amount, PST/QST on what is paid
-  discounts.cpp   loyalty credit off the subtotal
+  rating          whole gigabytes, partial gigs round up, $10 a gig over plan
+  proration       30 day billing month, mid cycle plan changes split on it
+  promo           promo credits expire at the end of the cycle they were issued
+  suspension      a suspended line is billed the full month, no credit
+  lines           3-9 lines 5% off recurring, 10+ lines 10%
+  latefee         10 day grace after the due date, then 1.5% of the balance
+  tax             GST/HST on the pre discount amount, PST/QST on what is paid
+  discounts       loyalty credit off the subtotal
+
+do not edit anything under billing/vendor. change the rule upstream, then
+re-vendor and rerun make check:
+
+  python tools/vendor.py --cpp ../meridian-telco/billing/vendor
+
+make check runs billing/rules_test.cpp, the shared conformance vectors, and
+billing/vendor/vendor_check.py, which fails if the vendored copy was patched
+in place.
 
 the provinces we bill are BC, AB, ON and QC. the province is on the account
 record (PROVINCE=) and on the invoice register page.
 
-vantage-telco rates the same accounts differently. tools/parity in that repo
-runs both registers off the same usage feed and prints the differences.
+vantage-telco rates the same accounts off the same library. tools/parity in
+that repo runs both registers off the same usage feed and prints any
+difference.
 
 contacts: ops-eng (pager), billing questions -> finance

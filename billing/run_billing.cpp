@@ -3,7 +3,6 @@
 #include <string>
 #include "accounts.h"
 #include "invoice.h"
-#include "rating.h"
 
 /* monthly billing run. prints the invoice register.
    --json prints one record per line for the reconciliation tooling. */

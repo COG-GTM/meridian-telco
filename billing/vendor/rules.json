@@ -1,0 +1,47 @@
+{
+  "spec_version": 1,
+  "default_profile": "meridian",
+  "notes": "Single source of truth for the Canadian billing rules shared by meridian-telco and vantage-telco. Language bindings are generated from this file by tools/generate.py; do not hand-edit the generated config files.",
+  "money": {
+    "rounding_mode": "half_up",
+    "line_rounding": "per_line"
+  },
+  "proration": {
+    "month_length": "fixed",
+    "billing_month_days": 30
+  },
+  "rating": {
+    "granularity": "whole_gb_round_up",
+    "mb_per_gb": 1024,
+    "overage_rate_per_gb": 10.0,
+    "overage_rate_per_mb": 0.012
+  },
+  "promo": {
+    "expiry": "issue_cycle",
+    "valid_days": 30
+  },
+  "suspension": {
+    "credit": "none"
+  },
+  "lines": {
+    "tiers": [
+      {"min_lines": 10, "pct": 10.0},
+      {"min_lines": 3, "pct": 5.0}
+    ]
+  },
+  "latefee": {
+    "grace_days": 10,
+    "pct": 1.5
+  },
+  "tax": {
+    "federal_base": "pre_discount",
+    "provincial_base": "post_discount",
+    "provinces": {
+      "BC": {"federal_pct": 5.0, "provincial_pct": 7.0, "federal_label": "GST", "provincial_label": "PST"},
+      "AB": {"federal_pct": 5.0, "provincial_pct": 0.0, "federal_label": "GST", "provincial_label": ""},
+      "ON": {"federal_pct": 13.0, "provincial_pct": 0.0, "federal_label": "HST", "provincial_label": ""},
+      "QC": {"federal_pct": 5.0, "provincial_pct": 9.975, "federal_label": "GST", "provincial_label": "QST"}
+    },
+    "default_province": {"federal_pct": 5.0, "provincial_pct": 0.0, "federal_label": "GST", "provincial_label": ""}
+  }
+}

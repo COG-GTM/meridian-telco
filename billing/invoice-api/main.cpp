@@ -4,7 +4,6 @@
 #include "../../inventory-api/httpd.h"
 #include "../accounts.h"
 #include "../invoice.h"
-#include "../rating.h"
 
 /* invoice api. GET /invoices?acct=BEACON-004417[&period=2026-07]
    GET /invoices returns every account for the periods we have usage for. */

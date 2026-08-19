@@ -1,0 +1,11 @@
+# vendored copy of COG-GTM/telco-billing-rules -- do not edit these files here
+# refresh with: python tools/vendor.py --<language> <this directory>
+source https://github.com/COG-GTM/telco-billing-rules c90dd2aa71477d44d6f7a8b9097ff29cabf81a6f
+bbb110079f9c35fea4699b43da227bf59c655d05458e390c6cef84653783276e  conformance/vectors.tsv
+26927bb4bb26af43fe66108499a05037e7a5960279485e80ff543fe0326c4f21  cpp/include/billing_rules/config.h
+e845a94974d55281f8c67e423c9ce01fd27cff9817627d5271a3620ef87e63f4  cpp/include/billing_rules/datecalc.h
+60b74642a5f26ca8fec0114f4f0c7e6402e5729c7ca151fb17d3fcac5d52fcd3  cpp/include/billing_rules/rules.h
+fb07dea129f1a74ed8beef111215ba9103dc8d9c260d1d1fcce532efdbcac3b7  cpp/src/rules.cpp
+4d4d72fcb801c5742345edccf7a11d665020b62dc6de0ca9f3e0db17512bc709  cpp/tests/conformance_main.cpp
+f9629a6987876b23f9d77dc2615795e3ea08fae3c465fe698332d18c34fbb22c  rules.json
+7da731d0a36a9084b481c3e4fcfd4878c4868b84e13c9646bd04cde33e8502d1  vendor_check.py
