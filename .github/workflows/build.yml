@@ -21,4 +21,6 @@ jobs:
         env:
           TELCO_RULES_DIR: ${{ github.workspace }}/telco-capacity-rules
       - run: make check
+        env:
+          TELCO_RULES_DIR: ${{ github.workspace }}/telco-capacity-rules
       - run: ./bin/mediation --data data --db meridian.db
