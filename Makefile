@@ -2,11 +2,25 @@ CXX = g++
 CXXFLAGS = -O2 -Wall
 LDFLAGS = -lsqlite3
 BIN = bin
+.DEFAULT_GOAL := all
+THIRD_PARTY = third_party/telco-capacity-rules
+TELCO_CAPACITY_RULES_DIR ?= $(THIRD_PARTY)
 
 MEDIATION_OBJS = mediation/capacity.o mediation/status.o mediation/circuit_counter.o mediation/store.o mediation/locations.o
 BILLING_OBJS = billing/rating.o billing/discounts.o billing/accounts.o billing/tax.o \
                billing/proration.o billing/promo.o billing/suspension.o billing/lines.o \
                billing/latefee.o billing/invoice.o
+
+CXXFLAGS += -I$(TELCO_CAPACITY_RULES_DIR)/cpp/include
+TELCO_CAPACITY_HEADER = $(TELCO_CAPACITY_RULES_DIR)/cpp/include/telco_capacity/capacity.h
+
+ifeq ($(TELCO_CAPACITY_RULES_DIR),$(THIRD_PARTY))
+$(TELCO_CAPACITY_HEADER):
+	mkdir -p $(THIRD_PARTY)
+	git clone --depth 1 --branch v0.1.0 https://github.com/COG-GTM/telco-capacity-rules.git $(THIRD_PARTY)
+endif
+
+$(MEDIATION_OBJS) inventory-api/main.o: $(TELCO_CAPACITY_HEADER)
 
 all: $(BIN)/mediation $(BIN)/inventory-api $(BIN)/billing-run $(BIN)/invoice-api $(BIN)/ipam
 
@@ -52,4 +66,6 @@ demo: all
 clean:
 	rm -f $(BIN)/* */*.o */*/*.o meridian.db
 
-.PHONY: all run check register demo clean
+deps: $(TELCO_CAPACITY_HEADER)
+
+.PHONY: all run check register demo clean deps

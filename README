@@ -7,6 +7,12 @@ check:  make check        (billing rule checks, bin/billing-test)
 reg:    make register     (invoice register for 2026-07)
 demo:   make demo         (invoice-api :8082 + dashboard pages on :8083)
 
+The build fetches the private `telco-capacity-rules` GitHub dependency. For a
+local checkout, use `TELCO_CAPACITY_RULES_DIR=/path/to/checkout make` instead.
+Local GitHub access can use `gh auth setup-git`, an SSH-based `insteadOf`
+rewrite, or a PAT via the same `git config --global url.…insteadOf` rewrite
+used by CI. CI reads the `TELCO_CAPACITY_RULES_TOKEN` Actions secret.
+
 binaries land in bin/
 
   mediation      nightly ingest, writes meridian.db
@@ -21,7 +27,9 @@ a browser with inventory-api and invoice-api running.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
-available = total - allocated, we do not hold back a maintenance buffer.
+Capacity follows the shared telco-capacity-rules repository:
+available = max(total - allocated - maintenance buffer, 0), with the buffer
+withheld from sellable capacity and utilization rounded half-up to two decimals.
 serviceable locations come from data/locations.csv.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.

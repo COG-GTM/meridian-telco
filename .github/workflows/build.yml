@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Configure access to telco-capacity-rules
+        env:
+          RULES_TOKEN: ${{ secrets.TELCO_CAPACITY_RULES_TOKEN }}
+        run: |
+          [ -n "$RULES_TOKEN" ] || exit 0
+          git config --global url."https://x-access-token:${RULES_TOKEN}@github.com/COG-GTM/telco-capacity-rules".insteadOf "https://github.com/COG-GTM/telco-capacity-rules"
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - run: make
       - run: ./bin/mediation --data data --db meridian.db

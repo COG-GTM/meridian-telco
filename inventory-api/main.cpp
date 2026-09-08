@@ -7,6 +7,7 @@
 #include "../mediation/status.h"
 #include "../mediation/circuit_counter.h"
 #include "../mediation/locations.h"
+#include <telco_capacity/capacity.h>
 
 /* inventory api. GET /sites , GET /circuits
    field names are the store's field names, downstream depends on them. */
@@ -20,12 +21,16 @@ static std::string site_json(Row &r) {
            "{\"ASSET_ID\":%s,\"SITE_NM\":\"%s\",\"SITE_CD\":\"%s\",\"REGION_CD\":\"%s\","
            "\"LAT\":%s,\"LON\":%s,\"STATUS_CD\":%s,\"STATUS_LABEL\":\"%s\","
            "\"TOWER_REG\":\"%s\",\"TOTAL_CAP_MBPS\":%s,\"ALLOC_CAP_MBPS\":%s,"
-           "\"AVAIL_CAP_MBPS\":%d}",
+           "\"MAINT_BUFFER_MBPS\":%d,\"AVAIL_CAP_MBPS\":%d,\"UTILIZATION_PCT\":%.2f}",
            r["ASSET_ID"].c_str(), json_escape(r["SITE_NM"]).c_str(), r["SITE_CD"].c_str(),
            r["REGION_CD"].c_str(), r["LAT"].c_str(), r["LON"].c_str(),
            r["STATUS_CD"].c_str(), status_label(to_int(r["STATUS_CD"])).c_str(),
            r["TOWER_REG"].c_str(), r["TOTAL_CAP_MBPS"].c_str(), r["ALLOC_CAP_MBPS"].c_str(),
-           available_capacity(to_int(r["TOTAL_CAP_MBPS"]), to_int(r["ALLOC_CAP_MBPS"])));
+           to_int(r["MAINT_BUFFER_MBPS"]),
+           available_capacity(to_int(r["TOTAL_CAP_MBPS"]), to_int(r["ALLOC_CAP_MBPS"]),
+                              to_int(r["MAINT_BUFFER_MBPS"])),
+           utilization_pct(to_int(r["TOTAL_CAP_MBPS"]), to_int(r["ALLOC_CAP_MBPS"]),
+                           to_int(r["MAINT_BUFFER_MBPS"])));
   return buf;
 }
 
@@ -71,11 +76,16 @@ static std::string handle_circuits(const HttpRequest &req, int *status) {
     snprintf(buf, sizeof(buf),
              "{\"CIRCUIT_ID\":\"%s\",\"CIRCUIT_NM\":\"%s\",\"A_ASSET_ID\":%s,"
              "\"Z_ASSET_ID\":%s,\"CAP_MBPS\":%s,\"ALLOC_MBPS\":%s,\"ROLE_CD\":%s,"
-             "\"STATUS_CD\":%s,\"AVAIL_MBPS\":%d}",
+             "\"STATUS_CD\":%s,\"MAINT_BUFFER_MBPS\":%d,\"AVAIL_MBPS\":%d,"
+             "\"UTILIZATION_PCT\":%.2f}",
              r["CIRCUIT_ID"].c_str(), json_escape(r["CIRCUIT_NM"]).c_str(),
              r["A_ASSET_ID"].c_str(), r["Z_ASSET_ID"].c_str(), r["CAP_MBPS"].c_str(),
              r["ALLOC_MBPS"].c_str(), r["ROLE_CD"].c_str(), r["STATUS_CD"].c_str(),
-             available_capacity(to_int(r["CAP_MBPS"]), to_int(r["ALLOC_MBPS"])));
+             to_int(r["MAINT_BUFFER_MBPS"]),
+             available_capacity(to_int(r["CAP_MBPS"]), to_int(r["ALLOC_MBPS"]),
+                                to_int(r["MAINT_BUFFER_MBPS"])),
+             utilization_pct(to_int(r["CAP_MBPS"]), to_int(r["ALLOC_MBPS"]),
+                             to_int(r["MAINT_BUFFER_MBPS"])));
     if (i) out += ",";
     out += buf;
   }
@@ -90,7 +100,9 @@ static std::string handle_capacity(const HttpRequest &req, int *status) {
   std::map<std::string, std::string> q = req.query;
   int requested = q.count("requested") ? atoi(q["requested"].c_str()) : 0;
   std::string market = q.count("market") ? q["market"] : "";
-  std::string out = "{\"rule\":\"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS\",";
+  std::string out = "{\"rule\":\"";
+  out += telco_capacity::RULE;
+  out += "\",";
   char n[32];
   snprintf(n, sizeof(n), "%d", requested);
   out += "\"requested_mbps\":";
@@ -103,12 +115,14 @@ static std::string handle_capacity(const HttpRequest &req, int *status) {
     char buf[1024];
     snprintf(buf, sizeof(buf),
              "{\"LOC_CD\":\"%s\",\"CUST_NM\":\"%s\",\"LOC_NM\":\"%s\",\"MARKET_CD\":\"%s\","
-             "\"TOTAL_CAP_MBPS\":%d,\"ALLOC_CAP_MBPS\":%d,\"AVAIL_CAP_MBPS\":%d,"
-             "\"UTILIZATION_PCT\":%d,\"CAN_SUPPORT\":%s}",
+             "\"TOTAL_CAP_MBPS\":%d,\"ALLOC_CAP_MBPS\":%d,\"MAINT_BUFFER_MBPS\":%d,"
+             "\"AVAIL_CAP_MBPS\":%d,\"UTILIZATION_PCT\":%.2f,\"CAN_SUPPORT\":%s}",
              l.loc_cd.c_str(), json_escape(l.cust_nm).c_str(), json_escape(l.loc_nm).c_str(),
              l.market_cd.c_str(), l.total_cap_mbps, l.alloc_cap_mbps,
+             l.maint_buffer_mbps,
              location_available_mbps(l),
-             utilization_pct(l.total_cap_mbps, l.alloc_cap_mbps),
+             utilization_pct(l.total_cap_mbps, l.alloc_cap_mbps,
+                             l.maint_buffer_mbps),
              location_can_support(l, requested) ? "true" : "false");
     if (emitted) out += ",";
     out += buf;

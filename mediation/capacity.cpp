@@ -1,15 +1,12 @@
 #include "capacity.h"
+#include <telco_capacity/capacity.h>
 
-/* capacity math. total minus allocated, that is it.
-   RS 2009-11 */
-
-int available_capacity(int total_mbps, int allocated_mbps) {
-  int avail = total_mbps - allocated_mbps;
-  if (avail < 0) avail = 0;
-  return avail;
+int available_capacity(int total_mbps, int allocated_mbps, int buffer_mbps) {
+  return telco_capacity::available_capacity(total_mbps, allocated_mbps,
+                                             buffer_mbps);
 }
 
-int utilization_pct(int total_mbps, int allocated_mbps) {
-  if (total_mbps <= 0) return 0;
-  return (allocated_mbps * 100) / total_mbps;
+double utilization_pct(int total_mbps, int allocated_mbps, int buffer_mbps) {
+  return telco_capacity::utilization_pct(total_mbps, allocated_mbps,
+                                         buffer_mbps);
 }

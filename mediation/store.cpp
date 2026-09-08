@@ -27,12 +27,13 @@ void Store::create_schema() {
       " ASSET_ID INTEGER PRIMARY KEY,"
       " SITE_NM TEXT, SITE_CD TEXT, REGION_CD TEXT,"
       " LAT REAL, LON REAL, STATUS_CD INTEGER, TOWER_REG TEXT,"
-      " TOTAL_CAP_MBPS INTEGER, ALLOC_CAP_MBPS INTEGER);"
+      " TOTAL_CAP_MBPS INTEGER, ALLOC_CAP_MBPS INTEGER,"
+      " MAINT_BUFFER_MBPS INTEGER);"
       "CREATE TABLE CIRCUIT("
       " CIRCUIT_ID TEXT PRIMARY KEY, CIRCUIT_NM TEXT,"
       " A_ASSET_ID INTEGER, Z_ASSET_ID INTEGER,"
       " CAP_MBPS INTEGER, ALLOC_MBPS INTEGER,"
-      " ROLE_CD INTEGER, STATUS_CD INTEGER);";
+      " ROLE_CD INTEGER, STATUS_CD INTEGER, MAINT_BUFFER_MBPS INTEGER);";
   char *err = 0;
   if (sqlite3_exec(db, ddl, 0, 0, &err) != SQLITE_OK) {
     fprintf(stderr, "ddl failed: %s\n", err ? err : "?");
@@ -55,11 +56,12 @@ void Store::load_sites(const std::vector<Row> &rows) {
     Row r = rows[i];
     char sql[2048];
     snprintf(sql, sizeof(sql),
-             "INSERT OR REPLACE INTO SITE VALUES(%d,'%s','%s','%s',%f,%f,%d,'%s',%d,%d)",
+             "INSERT OR REPLACE INTO SITE VALUES(%d,'%s','%s','%s',%f,%f,%d,'%s',%d,%d,%d)",
              to_int(r["ASSET_ID"]), esc(r["SITE_NM"]).c_str(), esc(r["SITE_CD"]).c_str(),
              esc(r["REGION_CD"]).c_str(), to_dbl(r["LAT"]), to_dbl(r["LON"]),
              to_int(r["STATUS_CD"]), esc(r["TOWER_REG"]).c_str(),
-             to_int(r["TOTAL_CAP_MBPS"]), to_int(r["ALLOC_CAP_MBPS"]));
+             to_int(r["TOTAL_CAP_MBPS"]), to_int(r["ALLOC_CAP_MBPS"]),
+             to_int(r["MAINT_BUFFER_MBPS"]));
     sqlite3_exec(db, sql, 0, 0, 0);
   }
   sqlite3_exec(db, "COMMIT", 0, 0, 0);
@@ -71,11 +73,12 @@ void Store::load_circuits(const std::vector<Row> &rows) {
     Row r = rows[i];
     char sql[2048];
     snprintf(sql, sizeof(sql),
-             "INSERT OR REPLACE INTO CIRCUIT VALUES('%s','%s',%d,%d,%d,%d,%d,%d)",
+             "INSERT OR REPLACE INTO CIRCUIT VALUES('%s','%s',%d,%d,%d,%d,%d,%d,%d)",
              esc(r["CIRCUIT_ID"]).c_str(), esc(r["CIRCUIT_NM"]).c_str(),
              to_int(r["A_ASSET_ID"]), to_int(r["Z_ASSET_ID"]),
              to_int(r["CAP_MBPS"]), to_int(r["ALLOC_MBPS"]),
-             to_int(r["ROLE_CD"]), to_int(r["STATUS_CD"]));
+             to_int(r["ROLE_CD"]), to_int(r["STATUS_CD"]),
+             to_int(r["MAINT_BUFFER_MBPS"]));
     sqlite3_exec(db, sql, 0, 0, 0);
   }
   sqlite3_exec(db, "COMMIT", 0, 0, 0);
