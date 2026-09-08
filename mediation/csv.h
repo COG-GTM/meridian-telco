@@ -6,6 +6,7 @@
 #include <map>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
 
 typedef std::map<std::string, std::string> Row;
 
@@ -29,9 +30,11 @@ inline std::vector<Row> read_csv(const std::string &path) {
   if (!f.good()) return rows;
   std::string line;
   if (!std::getline(f, line)) return rows;
+  if (!line.empty() && line[line.size() - 1] == '\r') line.erase(line.size() - 1);
   std::vector<std::string> hdr = split_line(line);
   while (std::getline(f, line)) {
     if (line.empty()) continue;
+    if (line[line.size() - 1] == '\r') line.erase(line.size() - 1);
     std::vector<std::string> v = split_line(line);
     Row r;
     for (size_t i = 0; i < hdr.size() && i < v.size(); i++) r[hdr[i]] = v[i];

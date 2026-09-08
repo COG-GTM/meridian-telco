@@ -21,7 +21,9 @@ a browser with inventory-api and invoice-api running.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
-available = total - allocated, we do not hold back a maintenance buffer.
+Capacity follows the shared telco-capacity-rules repository:
+available = max(total - allocated - maintenance buffer, 0), with the buffer
+withheld from sellable capacity and utilization rounded half-up to two decimals.
 serviceable locations come from data/locations.csv.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.

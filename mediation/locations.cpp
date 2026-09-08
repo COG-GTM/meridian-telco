@@ -1,10 +1,7 @@
 #include "locations.h"
 #include "capacity.h"
 #include "csv.h"
-
-/* the sales desk asks one question: how much is left at this location.
-   answer is whatever the location is not already using. we do not hold
-   anything back. */
+#include <telco_capacity/capacity.h>
 
 std::vector<Location> load_locations(const std::string &csv_path) {
   std::vector<Location> out;
@@ -18,15 +15,18 @@ std::vector<Location> load_locations(const std::string &csv_path) {
     l.market_cd = r["MARKET_CD"];
     l.total_cap_mbps = to_int(r["TOTAL_CAP_MBPS"]);
     l.alloc_cap_mbps = to_int(r["ALLOC_CAP_MBPS"]);
+    l.maint_buffer_mbps = to_int(r["MAINT_BUFFER_MBPS"]);
     out.push_back(l);
   }
   return out;
 }
 
 int location_available_mbps(const Location &loc) {
-  return available_capacity(loc.total_cap_mbps, loc.alloc_cap_mbps);
+  return available_capacity(loc.total_cap_mbps, loc.alloc_cap_mbps,
+                            loc.maint_buffer_mbps);
 }
 
 bool location_can_support(const Location &loc, int requested_mbps) {
-  return location_available_mbps(loc) >= requested_mbps;
+  return telco_capacity::can_support(location_available_mbps(loc),
+                                     requested_mbps);
 }

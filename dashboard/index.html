@@ -29,7 +29,7 @@ tr:hover td { background: #f5f5f5; }
   </div>
   <p id="err" class="err"></p>
   <table>
-    <thead><tr><th>ASSET_ID</th><th>SITE_NM</th><th>REGION_CD</th><th>STATUS_CD</th><th>TOWER_REG</th><th>TOTAL</th><th>ALLOC</th><th>AVAIL</th></tr></thead>
+    <thead><tr><th>ASSET_ID</th><th>SITE_NM</th><th>REGION_CD</th><th>STATUS_CD</th><th>TOWER_REG</th><th>TOTAL</th><th>ALLOC</th><th>BUFFER</th><th>AVAIL</th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
 </div>
@@ -44,6 +44,7 @@ fetch(API + "/sites").then(function (r) { return r.json(); }).then(function (d) 
     html += "<tr><td>" + s.ASSET_ID + "</td><td>" + s.SITE_NM + "</td><td>" + s.REGION_CD +
             "</td><td>" + s.STATUS_CD + " " + s.STATUS_LABEL + "</td><td>" + s.TOWER_REG +
             "</td><td>" + s.TOTAL_CAP_MBPS + "</td><td>" + s.ALLOC_CAP_MBPS + "</td><td>" +
+            s.MAINT_BUFFER_MBPS + "</td><td>" +
             s.AVAIL_CAP_MBPS + "</td></tr>";
   });
   document.getElementById("activeCount").textContent = active;
