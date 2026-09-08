@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from decimal import Decimal
 
 from .money import money
-from .rules import RULES, TaxRule
-
-
-TaxRates = TaxRule
+from .rules import RULES, TaxRates
 
 
 def rates_for_province(province: str) -> TaxRates:

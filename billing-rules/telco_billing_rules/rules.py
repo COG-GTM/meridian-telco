@@ -8,7 +8,7 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class TaxRule:
+class TaxRates:
     federal_pct: Decimal
     provincial_pct: Decimal
     federal_label: str
@@ -26,8 +26,8 @@ class Rules:
     overage_rate_per_gb: Decimal
     federal_base: str
     provincial_base: str
-    provinces: dict[str, TaxRule]
-    default_tax: TaxRule
+    provinces: dict[str, TaxRates]
+    default_tax: TaxRates
 
 
 def _decimal(value: Any) -> Decimal:
@@ -46,8 +46,8 @@ def load_rules() -> Rules:
     if raw["tax"]["provincial_base"] != "post_loyalty_discount":
         raise ValueError("unsupported provincial tax base")
 
-    def tax_rule(value: dict[str, Any]) -> TaxRule:
-        return TaxRule(
+    def tax_rule(value: dict[str, Any]) -> TaxRates:
+        return TaxRates(
             federal_pct=_decimal(value["federal_pct"]),
             provincial_pct=_decimal(value["provincial_pct"]),
             federal_label=value["federal_label"],

@@ -55,7 +55,7 @@ inline long overage_gb(long usage_mb, long included_gb) {
 }
 
 inline double rate_overage(long usage_mb, long included_gb) {
-  return money((double)overage_gb(usage_mb, included_gb) * OVERAGE_RATE_PER_GB);
+  return (double)overage_gb(usage_mb, included_gb) * OVERAGE_RATE_PER_GB;
 }
 
 struct TaxRates {
