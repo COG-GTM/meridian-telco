@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -O2 -Wall
+TELCO_RULES_DIR ?= ../telco-capacity-rules
+CXXFLAGS = -std=c++17 -O2 -Wall -I$(TELCO_RULES_DIR)/cpp/include
 LDFLAGS = -lsqlite3
 BIN = bin
 

@@ -10,6 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # TODO: pin to main once telco-capacity-rules#1 merges
+      - uses: actions/checkout@v4
+        with:
+          repository: COG-GTM/telco-capacity-rules
+          ref: devin/1788887793-shared-billing-rules
+          path: telco-capacity-rules
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - run: make
+        env:
+          TELCO_RULES_DIR: ${{ github.workspace }}/telco-capacity-rules
+      - run: make check
       - run: ./bin/mediation --data data --db meridian.db

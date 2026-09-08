@@ -26,6 +26,16 @@ serviceable locations come from data/locations.csv.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
 
+Shared billing rules
+--------------------
+
+Billing wrappers consume the header-only shared rules from the sibling
+`telco-capacity-rules` checkout. Set `TELCO_RULES_DIR` when it is elsewhere:
+
+  make TELCO_RULES_DIR=../telco-capacity-rules
+
+The default is `../telco-capacity-rules`.
+
 billing rules, one file each, all of them go through billing/invoice.cpp:
 
   rating.cpp      whole gigabytes, partial gigs round up, $10 a gig over plan

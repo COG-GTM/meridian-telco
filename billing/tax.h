@@ -1,14 +1,9 @@
 #ifndef MERIDIAN_TAX_H
 #define MERIDIAN_TAX_H
 
-#include <string>
+#include "telco_rules/billing.h"
 
-struct TaxRates {
-  double federal_pct;    /* GST, or HST where the province is harmonized */
-  double provincial_pct; /* PST or QST, zero in a harmonized province */
-  std::string federal_label;
-  std::string provincial_label;
-};
+using TaxRates = telco_rules::TaxRates;
 
 TaxRates rates_for_province(const std::string &province);
 
