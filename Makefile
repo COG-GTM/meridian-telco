@@ -20,7 +20,7 @@ $(TELCO_CAPACITY_HEADER):
 	git clone --depth 1 --branch v0.1.0 https://github.com/COG-GTM/telco-capacity-rules.git $(THIRD_PARTY)
 endif
 
-$(MEDIATION_OBJS): $(TELCO_CAPACITY_HEADER)
+$(MEDIATION_OBJS) inventory-api/main.o: $(TELCO_CAPACITY_HEADER)
 
 all: $(BIN)/mediation $(BIN)/inventory-api $(BIN)/billing-run $(BIN)/invoice-api $(BIN)/ipam
 
