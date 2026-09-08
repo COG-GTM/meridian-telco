@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "telco-billing-rules"
+version = "1.0.0"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools]
+packages = ["telco_billing_rules"]
+
+[tool.setuptools.package-data]
+telco_billing_rules = ["billing_rules.json"]

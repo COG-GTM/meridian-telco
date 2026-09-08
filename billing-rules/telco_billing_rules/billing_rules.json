@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "rounding": {"mode": "per_line", "decimals": 2},
+  "proration": {"billing_month_days": 30},
+  "rating": {"usage_unit": "gb_round_up", "mb_per_gb": 1024, "overage_rate_per_gb": 10.0},
+  "tax": {
+    "federal_base": "pre_loyalty_discount",
+    "provincial_base": "post_loyalty_discount",
+    "provinces": {
+      "BC": {"federal_pct": 5, "provincial_pct": 7, "federal_label": "GST", "provincial_label": "PST"},
+      "AB": {"federal_pct": 5, "provincial_pct": 0, "federal_label": "GST", "provincial_label": ""},
+      "ON": {"federal_pct": 13, "provincial_pct": 0, "federal_label": "HST", "provincial_label": ""},
+      "QC": {"federal_pct": 5, "provincial_pct": 9.975, "federal_label": "GST", "provincial_label": "QST"}
+    },
+    "default": {"federal_pct": 5, "provincial_pct": 0, "federal_label": "GST", "provincial_label": ""}
+  }
+}
