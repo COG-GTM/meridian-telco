@@ -16,6 +16,8 @@ jobs:
           repository: COG-GTM/telco-capacity-rules
           ref: devin/1788887793-shared-billing-rules
           path: telco-capacity-rules
+          # read-only token for the internal telco-capacity-rules repo
+          token: ${{ secrets.TELCO_RULES_READ_TOKEN }}
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - run: make
         env:
