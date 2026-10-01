@@ -3,7 +3,7 @@ meridian oss
 
 build:  make
 run:    make run          (rebuilds meridian.db from data/)
-check:  make check        (billing rule checks, bin/billing-test)
+check:  make check        (billing rule and retention checks)
 reg:    make register     (invoice register for 2026-07)
 demo:   make demo         (invoice-api :8082 + dashboard pages on :8083)
 
@@ -15,6 +15,7 @@ binaries land in bin/
   billing-test   billing rule checks
   invoice-api    :8082   /invoices?acct=...&period=...
   ipam           management address report (10.20.0.0/16)
+  account-retention  close / anonymize / purge account pii (billing/RETENTION)
 
 dashboard/index.html and dashboard/billing.html are static pages, open them in
 a browser with inventory-api and invoice-api running.
@@ -25,6 +26,10 @@ available = total - allocated, we do not hold back a maintenance buffer.
 serviceable locations come from data/locations.csv.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
+
+account records hold customer pii (name, tax id, service address). closed
+accounts are kept 6 years then purged, erasure requests are anonymized with
+bin/account-retention. see billing/RETENTION.
 
 billing rules, one file each, all of them go through billing/invoice.cpp:
 

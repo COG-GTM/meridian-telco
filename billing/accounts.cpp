@@ -19,6 +19,7 @@ static Account parse_rec(const std::string &path) {
   a.susp_end = 0;
   a.prior_bal = 0.0;
   a.loyalty_pct = 0.0;
+  a.rec_path = path;
   std::ifstream f(path.c_str());
   std::string line;
   while (std::getline(f, line)) {
@@ -45,6 +46,9 @@ static Account parse_rec(const std::string &path) {
     else if (k == "PRIOR_BAL") a.prior_bal = atof(v.c_str());
     else if (k == "PRIOR_DUE") a.prior_due = v;
     else if (k == "LOYALTY_PCT") a.loyalty_pct = atof(v.c_str());
+    else if (k == "STATUS") a.status = v;
+    else if (k == "CLOSED_DT") a.closed_dt = v;
+    else if (k == "ANONYMIZED_DT") a.anonymized_dt = v;
   }
   return a;
 }
