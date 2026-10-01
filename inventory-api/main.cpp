@@ -29,14 +29,30 @@ static std::string site_json(Row &r) {
   return buf;
 }
 
+static bool is_digits(const std::string &s) {
+  if (s.empty() || s.size() > 9) return false;
+  for (size_t i = 0; i < s.size(); i++)
+    if (s[i] < '0' || s[i] > '9') return false;
+  return true;
+}
+
 static std::string handle_sites(const HttpRequest &req, int *status) {
-  (void)status;
   std::string sql = "SELECT * FROM SITE";
+  std::vector<std::string> params;
   std::map<std::string, std::string> q = req.query;
-  if (q.count("REGION_CD")) sql += " WHERE REGION_CD='" + q["REGION_CD"] + "'";
-  else if (q.count("STATUS_CD")) sql += " WHERE STATUS_CD=" + q["STATUS_CD"];
+  if (q.count("REGION_CD")) {
+    sql += " WHERE REGION_CD=?";
+    params.push_back(q["REGION_CD"]);
+  } else if (q.count("STATUS_CD")) {
+    if (!is_digits(q["STATUS_CD"])) {
+      *status = 400;
+      return "{\"error\":\"STATUS_CD must be an integer\"}";
+    }
+    sql += " WHERE STATUS_CD=CAST(? AS INTEGER)";
+    params.push_back(q["STATUS_CD"]);
+  }
   sql += " ORDER BY ASSET_ID";
-  std::vector<Row> rows = g_store.query(sql);
+  std::vector<Row> rows = g_store.query(sql, params);
   std::string out = "{\"count\":";
   char n[32];
   snprintf(n, sizeof(n), "%d", (int)rows.size());
@@ -54,9 +70,13 @@ static std::string handle_circuits(const HttpRequest &req, int *status) {
   (void)status;
   std::map<std::string, std::string> q = req.query;
   std::string sql = "SELECT * FROM CIRCUIT";
-  if (q.count("CIRCUIT_ID")) sql += " WHERE CIRCUIT_ID='" + q["CIRCUIT_ID"] + "'";
+  std::vector<std::string> params;
+  if (q.count("CIRCUIT_ID")) {
+    sql += " WHERE CIRCUIT_ID=?";
+    params.push_back(q["CIRCUIT_ID"]);
+  }
   sql += " ORDER BY CIRCUIT_ID";
-  std::vector<Row> rows = g_store.query(sql);
+  std::vector<Row> rows = g_store.query(sql, params);
   std::string out = "{\"count\":";
   char n[32];
   snprintf(n, sizeof(n), "%d", (int)rows.size());

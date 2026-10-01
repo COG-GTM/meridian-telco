@@ -16,7 +16,9 @@ class Store {
   void create_schema();
   void load_sites(const std::vector<Row> &rows);
   void load_circuits(const std::vector<Row> &rows);
-  std::vector<Row> query(const std::string &sql);
+  /* one statement, values bound to ? placeholders in order. */
+  std::vector<Row> query(const std::string &sql,
+                         const std::vector<std::string> &params = std::vector<std::string>());
   sqlite3 *handle() { return db; }
 
  private:
