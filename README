@@ -16,6 +16,14 @@ binaries land in bin/
   invoice-api    :8082   /invoices?acct=...&period=...
   ipam           management address report (10.20.0.0/16)
 
+meridian.db holds site/circuit topology and capacity and is encrypted at rest
+with SQLCipher (apt install libsqlcipher-dev). mediation and inventory-api read
+the key from the secret store: mount it as a file and point
+MERIDIAN_DB_KEY_FILE at it, or inject MERIDIAN_DB_KEY. the key must be at least
+32 bytes; without it both binaries refuse to start. the file is created 0600.
+a plaintext meridian.db from an older build will not open: delete it and rerun
+mediation. make SQLCIPHER=0 builds a plaintext store for local experiments only.
+
 dashboard/index.html and dashboard/billing.html are static pages, open them in
 a browser with inventory-api and invoice-api running.
 

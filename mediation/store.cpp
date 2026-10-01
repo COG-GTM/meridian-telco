@@ -1,17 +1,111 @@
 #include "store.h"
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <algorithm>
+#include <fcntl.h>
+#include <unistd.h>
 
 Store::Store() : db(0) {}
 
 Store::~Store() { close(); }
 
-bool Store::open(const std::string &path) {
-  if (sqlite3_open(path.c_str(), &db) != SQLITE_OK) {
-    fprintf(stderr, "cannot open store %s\n", path.c_str());
+#ifdef MERIDIAN_SQLCIPHER
+static const size_t MIN_KEY_BYTES = 32;
+
+static void wipe(std::string &s) {
+  std::fill(s.begin(), s.end(), '\0');
+  s.clear();
+}
+
+/* the store key comes from the secret store, mounted as a file
+   (MERIDIAN_DB_KEY_FILE) or injected as MERIDIAN_DB_KEY. */
+static bool load_key(std::string &key) {
+  const char *file = getenv("MERIDIAN_DB_KEY_FILE");
+  const char *env = getenv("MERIDIAN_DB_KEY");
+  if (file && *file) {
+    FILE *f = fopen(file, "rb");
+    if (!f) {
+      fprintf(stderr, "cannot read MERIDIAN_DB_KEY_FILE %s: %s\n", file, strerror(errno));
+      return false;
+    }
+    char buf[4096];
+    size_t n = fread(buf, 1, sizeof(buf), f);
+    fclose(f);
+    key.assign(buf, n);
+    memset(buf, 0, sizeof(buf));
+    while (!key.empty() && (key[key.size() - 1] == '\n' || key[key.size() - 1] == '\r'))
+      key.erase(key.size() - 1);
+  } else if (env) {
+    key = env;
+  }
+  if (key.size() < MIN_KEY_BYTES) {
+    fprintf(stderr, "store key missing or shorter than %d bytes: set MERIDIAN_DB_KEY_FILE "
+                    "(preferred) or MERIDIAN_DB_KEY\n", (int)MIN_KEY_BYTES);
+    wipe(key);
     return false;
   }
-  sqlite3_exec(db, "PRAGMA synchronous=OFF", 0, 0, 0);
+  return true;
+}
+
+static int first_column(void *ctx, int argc, char **argv, char **) {
+  if (argc > 0 && argv[0]) *(std::string *)ctx = argv[0];
+  return 0;
+}
+
+static bool apply_key(sqlite3 *db) {
+  std::string version;
+  sqlite3_exec(db, "PRAGMA cipher_version", first_column, &version, 0);
+  if (version.empty()) {
+    fprintf(stderr, "store library is not SQLCipher, refusing to open an unencrypted store\n");
+    return false;
+  }
+  std::string key;
+  if (!load_key(key)) return false;
+  int rc = sqlite3_key(db, key.data(), (int)key.size());
+  wipe(key);
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "cannot key store: %s\n", sqlite3_errmsg(db));
+    return false;
+  }
+  return true;
+}
+#endif
+
+bool Store::open(const std::string &path) {
+  int fd = ::open(path.c_str(), O_RDWR | O_CREAT, 0600);
+  if (fd < 0) {
+    fprintf(stderr, "cannot open store %s: %s\n", path.c_str(), strerror(errno));
+    return false;
+  }
+  ::close(fd);
+  if (sqlite3_open(path.c_str(), &db) != SQLITE_OK) {
+    fprintf(stderr, "cannot open store %s\n", path.c_str());
+    close();
+    return false;
+  }
+#ifdef MERIDIAN_SQLCIPHER
+  if (!apply_key(db)) {
+    close();
+    return false;
+  }
+#else
+  fprintf(stderr, "warning: store %s is not encrypted at rest (built with SQLCIPHER=0)\n",
+          path.c_str());
+#endif
+  if (sqlite3_exec(db, "SELECT count(*) FROM sqlite_master", 0, 0, 0) != SQLITE_OK) {
+    fprintf(stderr, "cannot read store %s: %s (wrong key, or a plaintext store from an older "
+                    "build: remove it and rerun mediation)\n", path.c_str(), sqlite3_errmsg(db));
+    close();
+    return false;
+  }
+  if (sqlite3_exec(db, "PRAGMA synchronous=FULL", 0, 0, 0) != SQLITE_OK) {
+    fprintf(stderr, "cannot set synchronous=FULL on store %s: %s\n", path.c_str(),
+            sqlite3_errmsg(db));
+    close();
+    return false;
+  }
   return true;
 }
 
