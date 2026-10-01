@@ -7,7 +7,8 @@
 #include "circuit_counter.h"
 
 /* nightly mediation run. reads the element telemetry drops out of /data and
-   rebuilds the local store. cron: 0 2 * * * */
+   applies them to the local store as a snapshot; each run and every row it
+   changes is recorded in INGEST_RUN / INGEST_AUDIT. cron: 0 2 * * * */
 
 int main(int argc, char **argv) {
   std::string data = "data";
@@ -28,8 +29,13 @@ int main(int argc, char **argv) {
   Store st;
   if (!st.open(dbpath)) return 1;
   st.create_schema();
-  st.load_sites(sites);
-  st.load_circuits(circuits);
+  IngestStats run;
+  std::string source = "sites=" + data + "/sites.csv circuits=" + data + "/circuits.csv";
+  if (!st.ingest(sites, circuits, source, &run)) {
+    fprintf(stderr, "ingest run %ld failed, store left unchanged: %s\n", run.run_id,
+            st.last_error().c_str());
+    return 1;
+  }
 
   int countable = 0;
   long total = 0, alloc = 0;
@@ -41,6 +47,11 @@ int main(int argc, char **argv) {
   }
 
   printf("mediation run complete\n");
+  printf("  ingest run        : %ld\n", run.run_id);
+  printf("  rows inserted     : %d\n", run.inserted);
+  printf("  rows updated      : %d\n", run.updated);
+  printf("  rows deleted      : %d\n", run.deleted);
+  if (run.dup_keys) printf("  duplicate keys    : %d (last row kept)\n", run.dup_keys);
   printf("  sites loaded      : %d\n", (int)sites.size());
   printf("  countable sites   : %d\n", countable);
   printf("  circuits loaded   : %d\n", (int)circuits.size());
