@@ -39,6 +39,7 @@ run: all
 
 check: $(BIN)/billing-test
 	$(BIN)/billing-test
+	python3 tools/check-account-fixtures.py
 
 register: all
 	$(BIN)/billing-run --period 2026-07

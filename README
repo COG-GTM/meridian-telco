@@ -24,7 +24,21 @@ dashboard/capacity.html is the sales desk capacity check. it asks
 available = total - allocated, we do not hold back a maintenance buffer.
 serviceable locations come from data/locations.csv.
 
-data/ holds the telemetry drops. billing/accounts/ is the account master.
+data/ holds the telemetry drops. billing/accounts/ is the account master
+format, and the records in it (and data/accounts.csv) are synthetic fixtures:
+every record carries DATA_CLASS=SYNTHETIC, tax ids are in the never issued 00-
+range and service addresses are placeholders. make check and CI fail on any
+committed account record that is not marked synthetic.
+
+live customer account records (names, tax ids, addresses, balances) are never
+committed. keep them outside the repo, mode 0600 in a 0700 directory owned by
+the billing service user, and point the binaries at them:
+
+  bin/billing-run --accounts /srv/meridian/accounts --period 2026-07
+  bin/invoice-api --accounts /srv/meridian/accounts
+
+records not marked synthetic are skipped if the record or its directory is
+readable by group or other.
 
 billing rules, one file each, all of them go through billing/invoice.cpp:
 
