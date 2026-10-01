@@ -1,11 +1,16 @@
 #include "accounts.h"
 #include "../mediation/csv.h"
 #include <dirent.h>
+#include <sys/stat.h>
+#include <cstdio>
 #include <fstream>
 #include <cstdlib>
 
-/* account master. one flat record per account under billing/accounts/.
-   there was a migration to the store planned. */
+/* account master. one flat record per account, billing/accounts/ by default.
+   the records committed there are synthetic fixtures (DATA_CLASS=SYNTHETIC).
+   live customer records are kept outside the repo and passed with --accounts;
+   they are only loaded when neither the record nor its directory is
+   readable by group or other. */
 
 static Account parse_rec(const std::string &path) {
   Account a;
@@ -45,20 +50,35 @@ static Account parse_rec(const std::string &path) {
     else if (k == "PRIOR_BAL") a.prior_bal = atof(v.c_str());
     else if (k == "PRIOR_DUE") a.prior_due = v;
     else if (k == "LOYALTY_PCT") a.loyalty_pct = atof(v.c_str());
+    else if (k == "DATA_CLASS") a.data_class = v;
   }
   return a;
+}
+
+static bool owner_only(const std::string &path) {
+  struct stat st;
+  if (stat(path.c_str(), &st) != 0) return false;
+  return (st.st_mode & (S_IRWXG | S_IRWXO)) == 0;
 }
 
 std::vector<Account> load_accounts(const std::string &dir) {
   std::vector<Account> out;
   DIR *d = opendir(dir.c_str());
   if (!d) return out;
+  bool dir_restricted = owner_only(dir);
   struct dirent *e;
   while ((e = readdir(d)) != 0) {
     std::string nm = e->d_name;
     if (nm.size() < 5) continue;
     if (nm.substr(nm.size() - 4) != ".rec") continue;
-    out.push_back(parse_rec(dir + "/" + nm));
+    std::string path = dir + "/" + nm;
+    Account a = parse_rec(path);
+    if (a.data_class != "SYNTHETIC" && !(dir_restricted && owner_only(path))) {
+      fprintf(stderr, "skipping %s: customer account records must be mode 0600 in a 0700 directory\n",
+              path.c_str());
+      continue;
+    }
+    out.push_back(a);
   }
   closedir(d);
   return out;
