@@ -22,7 +22,10 @@ $(BIN)/inventory-api: $(MEDIATION_OBJS) inventory-api/main.o | $(BIN)
 $(BIN)/billing-run: $(BILLING_OBJS) billing/run_billing.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-$(BIN)/invoice-api: $(BILLING_OBJS) billing/invoice-api/main.o | $(BIN)
+$(BIN)/invoice-api: $(BILLING_OBJS) billing/invoice-api/access.o billing/invoice-api/main.o | $(BIN)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+$(BIN)/invoice-api-test: billing/invoice-api/access.o billing/invoice-api/access_test.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 $(BIN)/billing-test: $(BILLING_OBJS) billing/rules_test.o | $(BIN)
@@ -37,15 +40,24 @@ $(BIN)/ipam: network/ipam.o | $(BIN)
 run: all
 	$(BIN)/mediation --data data --db meridian.db
 
-check: $(BIN)/billing-test
+check: $(BIN)/billing-test $(BIN)/invoice-api-test
 	$(BIN)/billing-test
+	$(BIN)/invoice-api-test
 
 register: all
 	$(BIN)/billing-run --period 2026-07
 
-demo: all
+INVOICE_API_KEYS ?= invoice-api.keys
+INVOICE_API_AUDIT_LOG ?= invoice-api-audit.log
+
+$(INVOICE_API_KEYS):
+	@umask 077; printf 'register-demo %s *\n' "$$(od -An -tx1 -N24 /dev/urandom | tr -d ' \n')" > $@
+	@echo "wrote demo invoice-api caller to $@"
+
+demo: all $(INVOICE_API_KEYS)
 	@echo "invoice-api on :8082, invoice register page on :8083"
-	@$(BIN)/invoice-api & \
+	@echo "register page token: $$(awk '$$1 == "register-demo" { print $$2 }' $(INVOICE_API_KEYS))"
+	@$(BIN)/invoice-api --keys $(INVOICE_API_KEYS) --audit-log $(INVOICE_API_AUDIT_LOG) & \
 	 python3 -m http.server 8083 --directory dashboard & \
 	 wait
 

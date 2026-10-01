@@ -1,3 +1,5 @@
 bin/
 *.o
 *.db
+invoice-api.keys
+invoice-api-audit.log
