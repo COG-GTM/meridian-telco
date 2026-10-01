@@ -185,6 +185,7 @@
     <code>mediation/capacity.cpp</code> &middot; figures in Mbps.
   </footer>
 </main>
+<script src="auth.js"></script>
 <script>
 var API = "http://localhost:8081";
 var LOCATIONS = [];
@@ -229,7 +230,7 @@ function render() {
   document.getElementById("statAvail").textContent = avail.toLocaleString();
 }
 
-fetch(API + "/capacity").then(function (r) { return r.json(); }).then(function (d) {
+apiFetch(API + "/capacity").then(function (r) { return r.json(); }).then(function (d) {
   LOCATIONS = d.locations;
   var markets = [], sel = document.getElementById("market");
   LOCATIONS.forEach(function (l) { if (markets.indexOf(l.MARKET_CD) === -1) markets.push(l.MARKET_CD); });

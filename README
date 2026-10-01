@@ -16,8 +16,22 @@ binaries land in bin/
   invoice-api    :8082   /invoices?acct=...&period=...
   ipam           management address report (10.20.0.0/16)
 
-dashboard/index.html and dashboard/billing.html are static pages, open them in
-a browser with inventory-api and invoice-api running.
+dashboard/index.html and dashboard/billing.html are static pages, serve them on
+:8083 (make demo does) with inventory-api and invoice-api running. the pages ask
+for the api token once per tab.
+
+api transport (inventory-api/httpd.h, shared by inventory-api and invoice-api),
+set in the environment:
+
+  MERIDIAN_API_TOKEN     required, 32+ chars. clients send
+                         Authorization: Bearer <token>. no token, no start.
+  MERIDIAN_BIND_ADDR     default 127.0.0.1
+  MERIDIAN_CORS_ORIGINS  comma separated, default
+                         http://localhost:8083,http://127.0.0.1:8083
+  MERIDIAN_TLS_CERT      pem cert chain + key; the apis then speak https.
+  MERIDIAN_TLS_KEY       required for any bind address outside 127.0.0.0/8.
+
+  make check also runs bin/httpd-test.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
