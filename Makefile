@@ -37,8 +37,15 @@ $(BIN)/ipam: network/ipam.o | $(BIN)
 run: all
 	$(BIN)/mediation --data data --db meridian.db
 
-check: $(BIN)/billing-test
+check: $(BIN)/billing-test check-fixtures
 	$(BIN)/billing-test
+
+# customer identity (name, tax id, service address) must never be committed
+check-fixtures:
+	@! git grep -nE '^(CUST_NM|TAX_ID|SVC_ADDR)=' -- billing/accounts
+	@! git grep -nE '(^|,)(CUST_NM|TAX_ID|SVC_ADDR)(,|$$)' -- data/accounts.csv
+	@! git ls-files | grep -E '(^|/)account-identity[^/]*\.csv$$'
+	@echo "fixtures carry no customer identity"
 
 register: all
 	$(BIN)/billing-run --period 2026-07
@@ -52,4 +59,4 @@ demo: all
 clean:
 	rm -f $(BIN)/* */*.o */*/*.o meridian.db
 
-.PHONY: all run check register demo clean
+.PHONY: all run check check-fixtures register demo clean

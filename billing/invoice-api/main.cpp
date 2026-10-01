@@ -59,14 +59,17 @@ static std::string handle_invoices(const HttpRequest &req, int *status) {
 int main(int argc, char **argv) {
   std::string accts_dir = "billing/accounts";
   std::string usage_csv = "data/usage.csv";
+  std::string identity = "";
   int port = 8082;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
     if (a == "--accounts" && i + 1 < argc) accts_dir = argv[++i];
+    else if (a == "--identity" && i + 1 < argc) identity = argv[++i];
     else if (a == "--usage" && i + 1 < argc) usage_csv = argv[++i];
     else if (a == "--port" && i + 1 < argc) port = atoi(argv[++i]);
   }
   g_accts = load_accounts(accts_dir);
+  if (!apply_account_identity(identity, &g_accts)) return 1;
   g_usage = load_usage(usage_csv);
   if (g_accts.empty()) {
     fprintf(stderr, "no account records under %s\n", accts_dir.c_str());

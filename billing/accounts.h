@@ -30,6 +30,15 @@ struct Account {
 std::vector<Account> load_accounts(const std::string &dir);
 bool find_account(const std::vector<Account> &accts, const std::string &id, Account *out);
 
+/* customer identity (CUST_NM, TAX_ID, SVC_ADDR) is not kept in the account master.
+   it is read at run time from a csv owned by the running user with mode 0600 or
+   tighter. returns the number of accounts matched, -1 with *err set on refusal. */
+int load_account_identity(const std::string &path, std::vector<Account> *accts, std::string *err);
+
+/* --identity flag value, else $MERIDIAN_ACCOUNT_IDENTITY, else no identity.
+   false (after reporting on stderr) when a configured file is refused. */
+bool apply_account_identity(const std::string &flag_value, std::vector<Account> *accts);
+
 struct UsageRec {
   std::string acct_id;
   std::string period;
