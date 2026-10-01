@@ -40,6 +40,9 @@ run: all
 check: $(BIN)/billing-test
 	$(BIN)/billing-test
 
+check-secrets:
+	network/check-credentials.sh
+
 register: all
 	$(BIN)/billing-run --period 2026-07
 
@@ -52,4 +55,4 @@ demo: all
 clean:
 	rm -f $(BIN)/* */*.o */*/*.o meridian.db
 
-.PHONY: all run check register demo clean
+.PHONY: all run check check-secrets register demo clean

@@ -4,6 +4,7 @@ meridian oss
 build:  make
 run:    make run          (rebuilds meridian.db from data/)
 check:  make check        (billing rule checks, bin/billing-test)
+secrets: make check-secrets  (no plaintext snmp credentials under network/)
 reg:    make register     (invoice register for 2026-07)
 demo:   make demo         (invoice-api :8082 + dashboard pages on :8083)
 
@@ -23,6 +24,11 @@ dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
 available = total - allocated, we do not hold back a maintenance buffer.
 serviceable locations come from data/locations.csv.
+
+network/snmp-polling.conf polls with SNMPv3 (authPriv). the user, auth key and
+priv key are env:NAME references; the poller host gets SNMP_POLLER_USER,
+SNMP_POLLER_AUTH_KEY and SNMP_POLLER_PRIV_KEY from the secret store at runtime.
+never commit a community string or a key value to this repo.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
 
