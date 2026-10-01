@@ -11,13 +11,17 @@
 #include <cstring>
 #include <cstdlib>
 #include <unistd.h>
+#include <cctype>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 
 struct HttpRequest {
   std::string method;
   std::string path;
   std::map<std::string, std::string> query;
+  std::map<std::string, std::string> headers; /* keys lowercased */
+  std::string peer;                           /* client ip */
 };
 
 typedef std::string (*HandlerFn)(const HttpRequest &, int *status);
@@ -43,6 +47,25 @@ inline void parse_target(const std::string &target, HttpRequest *req) {
   }
 }
 
+inline void parse_headers(const char *raw, HttpRequest *req) {
+  const char *p = strstr(raw, "\r\n");
+  while (p) {
+    p += 2;
+    const char *eol = strstr(p, "\r\n");
+    if (!eol || eol == p) break;
+    std::string line(p, eol - p);
+    size_t colon = line.find(':');
+    if (colon != std::string::npos) {
+      std::string k = line.substr(0, colon);
+      for (size_t i = 0; i < k.size(); i++) k[i] = (char)tolower((unsigned char)k[i]);
+      size_t vs = line.find_first_not_of(" \t", colon + 1);
+      size_t ve = line.find_last_not_of(" \t");
+      req->headers[k] = vs == std::string::npos ? "" : line.substr(vs, ve - vs + 1);
+    }
+    p = eol;
+  }
+}
+
 inline int serve(int port, const std::vector<Route> &routes) {
   int fd = socket(AF_INET, SOCK_STREAM, 0);
   int one = 1;
@@ -59,7 +82,9 @@ inline int serve(int port, const std::vector<Route> &routes) {
   listen(fd, 16);
   fprintf(stderr, "listening on :%d\n", port);
   for (;;) {
-    int c = accept(fd, 0, 0);
+    struct sockaddr_in peer;
+    socklen_t peer_len = sizeof(peer);
+    int c = accept(fd, (struct sockaddr *)&peer, &peer_len);
     if (c < 0) continue;
     char buf[8192];
     int n = read(c, buf, sizeof(buf) - 1);
@@ -70,6 +95,22 @@ inline int serve(int port, const std::vector<Route> &routes) {
     sscanf(buf, "%15s %2047s", method, target);
     req.method = method;
     parse_target(target, &req);
+    parse_headers(buf, &req);
+    char ip[INET_ADDRSTRLEN] = {0};
+    inet_ntop(AF_INET, &peer.sin_addr, ip, sizeof(ip));
+    req.peer = ip;
+
+    if (req.method == "OPTIONS") {
+      const char *pre =
+          "HTTP/1.1 204 No Content\r\n"
+          "Access-Control-Allow-Origin: *\r\n"
+          "Access-Control-Allow-Methods: GET\r\n"
+          "Access-Control-Allow-Headers: Authorization\r\n"
+          "Content-Length: 0\r\nConnection: close\r\n\r\n";
+      write(c, pre, strlen(pre));
+      close(c);
+      continue;
+    }
 
     std::string body = "{\"error\":\"not found\"}";
     int status = 404;

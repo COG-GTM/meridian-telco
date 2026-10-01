@@ -23,6 +23,7 @@ td.num { text-align: right; }
   <p class="filters">
     Period: <select id="period"><option>2026-07</option><option>2026-06</option></select>
     &nbsp; Account: <input id="acct" placeholder="ACCT_ID or blank for all">
+    &nbsp; API key: <input id="key" type="password" autocomplete="off" placeholder="invoice-api bearer token">
     <button id="go">SHOW</button>
   </p>
   <p id="err" class="err"></p>
@@ -45,8 +46,15 @@ function taxCell(i) {
 function load() {
   var p = document.getElementById("period").value;
   var acct = document.getElementById("acct").value.trim();
-  var url = API + "/invoices?period=" + p + (acct ? "&acct=" + acct : "");
-  fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+  var key = document.getElementById("key").value.trim();
+  if (!key) { document.getElementById("err").textContent = "enter an invoice-api key"; return; }
+  sessionStorage.setItem("invoiceApiKey", key);
+  var url = API + "/invoices?period=" + p + (acct ? "&acct=" + encodeURIComponent(acct) : "");
+  fetch(url, { headers: { "Authorization": "Bearer " + key } }).then(function (r) {
+    if (r.status === 401) throw "invoice-api rejected the key";
+    if (r.status === 403) throw "this key is not entitled to that account";
+    return r.json();
+  }).then(function (d) {
     var html = "", total = 0;
     d.invoices.forEach(function (i) {
       total += i.INVOICE_TOTAL;
@@ -59,8 +67,12 @@ function load() {
     html += "<tr class='tot'><td colspan='10'>TOTAL BILLED</td><td class='num'>" + money(total) + "</td></tr>";
     document.getElementById("rows").innerHTML = html;
     document.getElementById("err").textContent = "";
-  }).catch(function (e) { document.getElementById("err").textContent = "invoice-api unreachable on :8082 (" + e + ")"; });
+  }).catch(function (e) {
+    document.getElementById("rows").innerHTML = "";
+    document.getElementById("err").textContent = typeof e === "string" ? e : "invoice-api unreachable on :8082 (" + e + ")";
+  });
 }
+document.getElementById("key").value = sessionStorage.getItem("invoiceApiKey") || "";
 document.getElementById("period").onchange = load;
 document.getElementById("go").onclick = load;
 load();
