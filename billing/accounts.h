@@ -25,6 +25,10 @@ struct Account {
   double prior_bal;
   std::string prior_due;
   double loyalty_pct;
+  std::string status;
+  std::string closed_dt;
+  std::string anonymized_dt;
+  std::string rec_path;
 };
 
 std::vector<Account> load_accounts(const std::string &dir);

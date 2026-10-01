@@ -1,0 +1,58 @@
+account pii retention
+=====================
+
+billing/accounts/*.rec is the account master and holds customer pii: CUST_NM,
+TAX_ID and SVC_ADDR. data/accounts.csv is a mirror of it, and data/locations.csv
+carries the customer name for each serviceable location.
+
+policy (billing/retention.h)
+
+  open account      pii kept, it is needed to bill.
+  closed account    STATUS=CLOSED and CLOSED_DT= go on the record. the whole
+                    record is kept for RETENTION_YEARS (6) after CLOSED_DT so
+                    invoices can be reissued and audited.
+  erasure request   a closed account is anonymized straight away: CUST_NM
+                    becomes REDACTED, TAX_ID and SVC_ADDR are blanked, and
+                    ANONYMIZED_DT= is stamped. billing ref, province, plan and
+                    balances stay, so the invoice still totals the same. an
+                    open account has to be closed first.
+  retention expiry  the record is purged: the .rec is deleted, its row is
+                    dropped from data/accounts.csv and the customer name is
+                    replaced with REDACTED on data/locations.csv (unless
+                    another account that still holds pii goes by that name).
+
+six years follows the CRA books and records period. finance owns the number,
+change RETENTION_YEARS if it moves.
+
+tool, dry run unless --apply
+
+  bin/account-retention close BEACON-004417 --on 2026-09-30 --apply
+  bin/account-retention anonymize BEACON-004417 --on 2026-10-01 --apply
+  bin/account-retention report
+  bin/account-retention sweep --as-of 2026-10-01 [--apply]
+  make retention-sweep            dry run sweep as of today
+
+  --accounts DIR --accounts-csv PATH --locations PATH point it at another store.
+  sweep --apply is meant to run monthly after the billing run.
+
+derived outputs
+
+  billing-run --json (reconciliation feed) and invoice-api build their output
+  from the .rec on every request and keep no copy, so an anonymized or purged
+  record drops out of them on the next run. copies already sent downstream
+  (vantage-telco parity runs, finance exports) are the receiver's to delete.
+  vantage-telco tools/fixtures/generate_fixtures.py rewrites billing/accounts/
+  and data/accounts.csv from scratch, closures and anonymizations included.
+
+what this does not cover
+
+  git history       a deleted or rewritten record is still in old commits.
+                    after an erasure or purge lands, a repo admin has to
+                    rewrite history, e.g.
+                      git filter-repo --invert-paths --path billing/accounts/<ACCT_ID>.rec
+                    and for the csv mirrors use --replace-text with the old
+                    values, then force push, ask github support to drop cached
+                    views and pull refs, and have everyone re-clone.
+  backups           snapshots and backups of this repo or of the hosts that
+                    run billing keep their copy until they age out. their
+                    retention must not be longer than RETENTION_YEARS.
