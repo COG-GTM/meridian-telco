@@ -8,17 +8,16 @@
 /* monthly billing run. prints the invoice register.
    --json prints one record per line for the reconciliation tooling. */
 
-static void print_json(const Invoice &inv, const Account &a) {
+static void print_json(const Invoice &inv) {
   printf("{\"billing_ref\":\"%s\",\"acct_id\":\"%s\",\"period\":\"%s\",\"province\":\"%s\","
          "\"usage_mb\":%ld,\"overage_gb\":%ld,\"plan_charge\":%.2f,\"line_discount\":%.2f,"
          "\"overage_charges\":%.2f,\"suspension_credit\":%.2f,\"promo_credit\":%.2f,"
          "\"late_fee\":%.2f,\"subtotal\":%.2f,\"loyalty\":%.2f,\"federal_tax\":%.2f,"
-         "\"provincial_tax\":%.2f,\"total\":%.2f,\"cust_nm\":\"%s\"}\n",
+         "\"provincial_tax\":%.2f,\"total\":%.2f}\n",
          inv.billing_ref.c_str(), inv.acct_id.c_str(), inv.period.c_str(), inv.province.c_str(),
          inv.usage_mb, inv.overage_gb, inv.plan_charge, inv.line_discount, inv.overage_charges,
          inv.suspension_credit_amt, inv.promo_credit_amt, inv.late_fee_amt, inv.subtotal,
-         inv.loyalty_amt, inv.federal_tax_amt, inv.provincial_tax_amt, inv.total,
-         a.cust_nm.c_str());
+         inv.loyalty_amt, inv.federal_tax_amt, inv.provincial_tax_amt, inv.total);
 }
 
 int main(int argc, char **argv) {
@@ -54,7 +53,7 @@ int main(int argc, char **argv) {
     Invoice inv = compute_invoice(a, u);
     grand += inv.total;
     if (as_json) {
-      print_json(inv, a);
+      print_json(inv);
       continue;
     }
     printf("%-16s %-8s %-4s %12ld %10ld %12.2f %10.2f %12.2f\n", u.acct_id.c_str(),
