@@ -34,6 +34,7 @@ td.num { text-align: right; }
     <tbody id="rows"></tbody>
   </table>
 </div>
+<script src="auth.js"></script>
 <script>
 var API = "http://localhost:8082";
 function money(v) { return "$" + v.toFixed(2); }
@@ -46,7 +47,7 @@ function load() {
   var p = document.getElementById("period").value;
   var acct = document.getElementById("acct").value.trim();
   var url = API + "/invoices?period=" + p + (acct ? "&acct=" + acct : "");
-  fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+  apiFetch(url).then(function (r) { return r.json(); }).then(function (d) {
     var html = "", total = 0;
     d.invoices.forEach(function (i) {
       total += i.INVOICE_TOTAL;

@@ -33,9 +33,10 @@ tr:hover td { background: #f5f5f5; }
     <tbody id="rows"></tbody>
   </table>
 </div>
+<script src="auth.js"></script>
 <script>
 var API = "http://localhost:8081";
-fetch(API + "/sites").then(function (r) { return r.json(); }).then(function (d) {
+apiFetch(API + "/sites").then(function (r) { return r.json(); }).then(function (d) {
   document.getElementById("siteCount").textContent = d.count;
   var active = 0, avail = 0, html = "";
   d.sites.forEach(function (s) {
@@ -50,7 +51,7 @@ fetch(API + "/sites").then(function (r) { return r.json(); }).then(function (d) 
   document.getElementById("availCap").textContent = avail;
   document.getElementById("rows").innerHTML = html;
 }).catch(function (e) { document.getElementById("err").textContent = "inventory-api unreachable on :8081 (" + e + ")"; });
-fetch(API + "/circuits").then(function (r) { return r.json(); }).then(function (d) {
+apiFetch(API + "/circuits").then(function (r) { return r.json(); }).then(function (d) {
   document.getElementById("circuitCount").textContent = d.active_count;
 });
 </script>
