@@ -28,6 +28,9 @@ $(BIN)/invoice-api: $(BILLING_OBJS) billing/invoice-api/main.o | $(BIN)
 $(BIN)/billing-test: $(BILLING_OBJS) billing/rules_test.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
+$(BIN)/store-test: $(MEDIATION_OBJS) mediation/store_test.o | $(BIN)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
 $(BIN)/ipam: network/ipam.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
@@ -37,8 +40,9 @@ $(BIN)/ipam: network/ipam.o | $(BIN)
 run: all
 	$(BIN)/mediation --data data --db meridian.db
 
-check: $(BIN)/billing-test
+check: $(BIN)/billing-test $(BIN)/store-test
 	$(BIN)/billing-test
+	$(BIN)/store-test
 
 register: all
 	$(BIN)/billing-run --period 2026-07
