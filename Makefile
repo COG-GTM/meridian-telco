@@ -1,6 +1,19 @@
 CXX = g++
-CXXFLAGS = -O2 -Wall
-LDFLAGS = -lsqlite3
+
+# the mediation store is encrypted with SQLCipher (libsqlcipher-dev).
+# SQLCIPHER=0 builds a plaintext store for local experiments only;
+# run make clean when switching.
+SQLCIPHER ?= 1
+ifeq ($(SQLCIPHER),1)
+STORE_CFLAGS = -DMERIDIAN_SQLCIPHER -DSQLITE_HAS_CODEC -I/usr/include/sqlcipher
+STORE_LIBS = -lsqlcipher
+else
+STORE_CFLAGS =
+STORE_LIBS = -lsqlite3
+endif
+
+CXXFLAGS = -O2 -Wall $(STORE_CFLAGS)
+LDFLAGS = $(STORE_LIBS)
 BIN = bin
 
 MEDIATION_OBJS = mediation/capacity.o mediation/status.o mediation/circuit_counter.o mediation/store.o mediation/locations.o

@@ -10,6 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev libsqlcipher-dev sqlite3
       - run: make
-      - run: ./bin/mediation --data data --db meridian.db
+      - name: mediation writes an encrypted store
+        run: |
+          umask 077
+          head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$RUNNER_TEMP/store.key"
+          export MERIDIAN_DB_KEY_FILE="$RUNNER_TEMP/store.key"
+          ./bin/mediation --data data --db meridian.db
+          if head -c 16 meridian.db | grep -q "SQLite format 3"; then
+            echo "meridian.db has a plaintext sqlite header"; exit 1
+          fi
+          if sqlite3 meridian.db "SELECT count(*) FROM SITE" 2>/dev/null; then
+            echo "meridian.db readable without the key"; exit 1
+          fi
+          test "$(stat -c %a meridian.db)" = 600
+          ./bin/mediation --data data --db meridian.db
+      - name: store refuses a missing or wrong key
+        run: |
+          if ./bin/mediation --data data --db meridian.db; then
+            echo "opened without a key"; exit 1
+          fi
+          if MERIDIAN_DB_KEY=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n') \
+             ./bin/mediation --data data --db meridian.db; then
+            echo "opened with the wrong key"; exit 1
+          fi
