@@ -81,20 +81,41 @@ void Store::load_circuits(const std::vector<Row> &rows) {
   sqlite3_exec(db, "COMMIT", 0, 0, 0);
 }
 
-static int collect(void *ctx, int argc, char **argv, char **cols) {
-  std::vector<Row> *out = (std::vector<Row> *)ctx;
-  Row r;
-  for (int i = 0; i < argc; i++) r[cols[i]] = argv[i] ? argv[i] : "";
-  out->push_back(r);
-  return 0;
-}
-
-std::vector<Row> Store::query(const std::string &sql) {
+std::vector<Row> Store::query(const std::string &sql, const std::vector<std::string> &params) {
   std::vector<Row> out;
-  char *err = 0;
-  if (sqlite3_exec(db, sql.c_str(), collect, &out, &err) != SQLITE_OK) {
-    fprintf(stderr, "query failed: %s\n", err ? err : "?");
-    if (err) sqlite3_free(err);
+  sqlite3_stmt *st = 0;
+  const char *tail = 0;
+  if (sqlite3_prepare_v2(db, sql.c_str(), (int)sql.size() + 1, &st, &tail) != SQLITE_OK || !st) {
+    fprintf(stderr, "query failed: %s\n", sqlite3_errmsg(db));
+    sqlite3_finalize(st);
+    return out;
   }
+  for (const char *t = tail; t && *t; t++) {
+    if (*t != ' ' && *t != '\t' && *t != '\n' && *t != '\r') {
+      fprintf(stderr, "query failed: more than one statement\n");
+      sqlite3_finalize(st);
+      return out;
+    }
+  }
+  if (sqlite3_bind_parameter_count(st) != (int)params.size()) {
+    fprintf(stderr, "query failed: expected %d params, got %d\n",
+            sqlite3_bind_parameter_count(st), (int)params.size());
+    sqlite3_finalize(st);
+    return out;
+  }
+  for (size_t i = 0; i < params.size(); i++)
+    sqlite3_bind_text(st, (int)i + 1, params[i].c_str(), (int)params[i].size(), SQLITE_TRANSIENT);
+  int rc;
+  while ((rc = sqlite3_step(st)) == SQLITE_ROW) {
+    Row r;
+    int n = sqlite3_column_count(st);
+    for (int c = 0; c < n; c++) {
+      const unsigned char *v = sqlite3_column_text(st, c);
+      r[sqlite3_column_name(st, c)] = v ? (const char *)v : "";
+    }
+    out.push_back(r);
+  }
+  if (rc != SQLITE_DONE) fprintf(stderr, "query failed: %s\n", sqlite3_errmsg(db));
+  sqlite3_finalize(st);
   return out;
 }
