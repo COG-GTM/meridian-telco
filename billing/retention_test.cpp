@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
+#include <sys/stat.h>
 #include "accounts.h"
 #include "invoice.h"
 #include "retention.h"
@@ -128,7 +129,11 @@ int main() {
   check_true("open account cannot be anonymized", !anonymize_account(st, "T-1", "2026-08-01", &err));
   check_true("bad date refused", !anonymize_account(st, "T-3", "2026/08/01", &err));
   check_true("unknown account refused", !anonymize_account(st, "NOPE", "2026-08-01", &err));
+  chmod((st.accounts_dir + "/T-3.rec").c_str(), 0600);
   check_true("closed account anonymized", anonymize_account(st, "T-3", "2026-08-01", &err));
+  struct stat sb;
+  check_true("owner-only mode kept on rewrite",
+             stat((st.accounts_dir + "/T-3.rec").c_str(), &sb) == 0 && (sb.st_mode & 07777) == 0600);
 
   std::vector<Account> after = load_accounts(st.accounts_dir);
   Account a3;

@@ -5,6 +5,7 @@
 #include <fstream>
 #include <map>
 #include <set>
+#include <sys/stat.h>
 
 const int RETENTION_YEARS = 6;
 const char *REDACTED_NAME = "REDACTED";
@@ -60,10 +61,13 @@ static bool read_lines(const std::string &path, std::vector<std::string> *out) {
 }
 
 /* write to a sibling temp file and rename over the original so a failed
-   write never leaves a half redacted record behind. */
+   write never leaves a half redacted record behind. the original's mode is
+   kept so an owner-only record does not come back world readable. */
 static bool replace_file(const std::string &path, const std::vector<std::string> &lines,
                          std::string *err) {
   std::string tmp = path + ".tmp";
+  struct stat orig;
+  bool have_mode = stat(path.c_str(), &orig) == 0;
   {
     std::ofstream f(tmp.c_str(), std::ios::out | std::ios::trunc);
     for (size_t i = 0; i < lines.size(); i++) f << lines[i] << "\n";
@@ -73,6 +77,11 @@ static bool replace_file(const std::string &path, const std::vector<std::string>
       *err = "cannot write " + tmp;
       return false;
     }
+  }
+  if (have_mode && chmod(tmp.c_str(), orig.st_mode & 07777) != 0) {
+    remove(tmp.c_str());
+    *err = "cannot set mode on " + tmp;
+    return false;
   }
   if (rename(tmp.c_str(), path.c_str()) != 0) {
     remove(tmp.c_str());
