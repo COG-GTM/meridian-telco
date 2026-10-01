@@ -1,11 +1,18 @@
 #include "accounts.h"
 #include "../mediation/csv.h"
 #include <dirent.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <cstdlib>
 
 /* account master. one flat record per account under billing/accounts/.
-   there was a migration to the store planned. */
+   there was a migration to the store planned. the records carry billing terms
+   only; customer identity comes from load_account_identity(). */
 
 static Account parse_rec(const std::string &path) {
   Account a;
@@ -28,9 +35,6 @@ static Account parse_rec(const std::string &path) {
     std::string v = line.substr(eq + 1);
     if (k == "ACCT_ID") a.acct_id = v;
     else if (k == "BILLING_REF") a.billing_ref = v;
-    else if (k == "CUST_NM") a.cust_nm = v;
-    else if (k == "TAX_ID") a.tax_id = v;
-    else if (k == "SVC_ADDR") a.svc_addr = v;
     else if (k == "PROVINCE") a.province = v;
     else if (k == "PLAN_CD") a.plan_cd = v;
     else if (k == "PLAN_FEE") a.plan_fee = atof(v.c_str());
@@ -69,6 +73,82 @@ bool find_account(const std::vector<Account> &accts, const std::string &id, Acco
     if (accts[i].acct_id == id) { *out = accts[i]; return true; }
   }
   return false;
+}
+
+static std::string account_identity_path(const std::string &flag_value) {
+  if (!flag_value.empty()) return flag_value;
+  const char *env = getenv("MERIDIAN_ACCOUNT_IDENTITY");
+  return env ? env : "";
+}
+
+static bool read_protected(const std::string &path, std::string *body, std::string *err) {
+  int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+  if (fd < 0) {
+    *err = path + ": " + strerror(errno);
+    return false;
+  }
+  struct stat st;
+  bool ok = false;
+  if (fstat(fd, &st) != 0) *err = path + ": " + strerror(errno);
+  else if (!S_ISREG(st.st_mode)) *err = path + ": not a regular file";
+  else if (st.st_uid != geteuid()) *err = path + ": not owned by the running user";
+  else if (st.st_mode & (S_IRWXG | S_IRWXO)) *err = path + ": group/other access, chmod 600";
+  else ok = true;
+  if (ok) {
+    char buf[8192];
+    ssize_t n;
+    while ((n = read(fd, buf, sizeof(buf))) > 0) body->append(buf, n);
+    if (n < 0) {
+      *err = path + ": " + strerror(errno);
+      ok = false;
+    }
+  }
+  close(fd);
+  return ok;
+}
+
+int load_account_identity(const std::string &path, std::vector<Account> *accts, std::string *err) {
+  std::string body;
+  if (!read_protected(path, &body, err)) return -1;
+  std::istringstream in(body);
+  std::string line;
+  if (!std::getline(in, line)) {
+    *err = path + ": empty";
+    return -1;
+  }
+  std::vector<std::string> hdr = split_line(line);
+  std::map<std::string, Row> by_id;
+  while (std::getline(in, line)) {
+    if (line.empty()) continue;
+    std::vector<std::string> v = split_line(line);
+    Row r;
+    for (size_t i = 0; i < hdr.size() && i < v.size(); i++) r[hdr[i]] = v[i];
+    if (!r["ACCT_ID"].empty()) by_id[r["ACCT_ID"]] = r;
+  }
+  int matched = 0;
+  for (size_t i = 0; i < accts->size(); i++) {
+    Account &a = (*accts)[i];
+    std::map<std::string, Row>::iterator it = by_id.find(a.acct_id);
+    if (it == by_id.end()) continue;
+    a.cust_nm = it->second["CUST_NM"];
+    a.tax_id = it->second["TAX_ID"];
+    a.svc_addr = it->second["SVC_ADDR"];
+    matched++;
+  }
+  return matched;
+}
+
+bool apply_account_identity(const std::string &flag_value, std::vector<Account> *accts) {
+  std::string path = account_identity_path(flag_value);
+  if (path.empty()) return true;
+  std::string err;
+  int n = load_account_identity(path, accts, &err);
+  if (n < 0) {
+    fprintf(stderr, "account identity refused: %s\n", err.c_str());
+    return false;
+  }
+  fprintf(stderr, "account identity loaded for %d accounts\n", n);
+  return true;
 }
 
 std::vector<UsageRec> load_usage(const std::string &csv_path) {

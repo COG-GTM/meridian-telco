@@ -24,16 +24,19 @@ static void print_json(const Invoice &inv, const Account &a) {
 int main(int argc, char **argv) {
   std::string accts_dir = "billing/accounts";
   std::string usage_csv = "data/usage.csv";
+  std::string identity = "";
   std::string period = "";
   int as_json = 0;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
     if (a == "--accounts" && i + 1 < argc) accts_dir = argv[++i];
+    else if (a == "--identity" && i + 1 < argc) identity = argv[++i];
     else if (a == "--usage" && i + 1 < argc) usage_csv = argv[++i];
     else if (a == "--period" && i + 1 < argc) period = argv[++i];
     else if (a == "--json") as_json = 1;
   }
   std::vector<Account> accts = load_accounts(accts_dir);
+  if (!apply_account_identity(identity, &accts)) return 1;
   std::vector<UsageRec> usage = load_usage(usage_csv);
   double grand = 0.0;
   if (!as_json) {

@@ -1,6 +1,10 @@
 #include <cstdio>
 #include <cmath>
 #include <string>
+#include <cstdlib>
+#include <sys/stat.h>
+#include <unistd.h>
+#include "accounts.h"
 #include "latefee.h"
 #include "lines.h"
 #include "promo.h"
@@ -28,6 +32,52 @@ static void check_true(const char *what, bool cond) {
   } else {
     printf("ok   %s\n", what);
   }
+}
+
+static std::string write_identity_file(mode_t mode) {
+  char path[] = "/tmp/meridian-identity-XXXXXX";
+  int fd = mkstemp(path);
+  if (fd < 0) return "";
+  const char body[] = "ACCT_ID,CUST_NM,TAX_ID,SVC_ADDR\n"
+                      "MER-011000,Example Customer A,00-0000001,\"1 Example St, Edmonton, AB\"\n";
+  ssize_t n = write(fd, body, sizeof(body) - 1);
+  close(fd);
+  if (n != (ssize_t)(sizeof(body) - 1)) return "";
+  chmod(path, mode);
+  return path;
+}
+
+static void identity_checks() {
+  std::vector<Account> master = load_accounts("billing/accounts");
+  bool clean = !master.empty();
+  for (size_t i = 0; i < master.size(); i++) {
+    if (!master[i].cust_nm.empty() || !master[i].tax_id.empty() || !master[i].svc_addr.empty())
+      clean = false;
+  }
+  check_true("account master carries no customer identity", clean);
+
+  std::vector<Account> accts(1);
+  accts[0].acct_id = "MER-011000";
+  std::string err;
+  std::string ok_path = write_identity_file(0600);
+  check_eq("0600 identity file is loaded", load_account_identity(ok_path, &accts, &err), 1.0);
+  check_true("identity fields merged by acct id",
+             accts[0].tax_id == "00-0000001" && accts[0].svc_addr == "1 Example St, Edmonton, AB");
+
+  std::vector<Account> fresh(1);
+  fresh[0].acct_id = "MER-011000";
+  std::string open_path = write_identity_file(0644);
+  check_eq("world readable identity file is refused", load_account_identity(open_path, &fresh, &err), -1.0);
+  check_true("refused file leaves accounts untouched", fresh[0].tax_id.empty());
+
+  std::string link_path = ok_path + ".lnk";
+  check_true("symlink created", symlink(ok_path.c_str(), link_path.c_str()) == 0);
+  check_eq("symlinked identity file is refused", load_account_identity(link_path, &fresh, &err), -1.0);
+  check_eq("missing identity file is refused", load_account_identity(ok_path + ".missing", &fresh, &err), -1.0);
+
+  unlink(link_path.c_str());
+  unlink(ok_path.c_str());
+  unlink(open_path.c_str());
 }
 
 int main() {
@@ -68,6 +118,8 @@ int main() {
   check_eq("quebec qst on post discount", provincial_tax(1000.0, 100.0, qc), 89.78);
   TaxRates ab = rates_for_province("AB");
   check_eq("alberta has no provincial tax", provincial_tax(100.0, 0.0, ab), 0.0);
+
+  identity_checks();
 
   if (failures) {
     printf("\n%d check(s) failed\n", failures);
