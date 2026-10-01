@@ -1,3 +1,5 @@
 bin/
 *.o
 *.db
+billing/invoice-api/clients.conf
+*.log

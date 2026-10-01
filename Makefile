@@ -43,7 +43,13 @@ check: $(BIN)/billing-test
 register: all
 	$(BIN)/billing-run --period 2026-07
 
-demo: all
+INVOICE_CLIENTS = billing/invoice-api/clients.conf
+
+$(INVOICE_CLIENTS):
+	@umask 077; echo "demo-desk $$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n') *" > $@
+	@echo "wrote a demo api key to $@, paste its token into the invoice register page"
+
+demo: all $(INVOICE_CLIENTS)
 	@echo "invoice-api on :8082, invoice register page on :8083"
 	@$(BIN)/invoice-api & \
 	 python3 -m http.server 8083 --directory dashboard & \
