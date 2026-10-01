@@ -23,6 +23,7 @@ td.num { text-align: right; }
   <p class="filters">
     Period: <select id="period"><option>2026-07</option><option>2026-06</option></select>
     &nbsp; Account: <input id="acct" placeholder="ACCT_ID or blank for all">
+    &nbsp; API token: <input id="token" type="password" autocomplete="off">
     <button id="go">SHOW</button>
   </p>
   <p id="err" class="err"></p>
@@ -45,8 +46,14 @@ function taxCell(i) {
 function load() {
   var p = document.getElementById("period").value;
   var acct = document.getElementById("acct").value.trim();
-  var url = API + "/invoices?period=" + p + (acct ? "&acct=" + acct : "");
-  fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+  var token = document.getElementById("token").value.trim();
+  var url = API + "/invoices?period=" + encodeURIComponent(p) + (acct ? "&acct=" + encodeURIComponent(acct) : "");
+  if (!token) { document.getElementById("err").textContent = "enter an invoice-api token"; return; }
+  fetch(url, { headers: { "Authorization": "Bearer " + token } }).then(function (r) {
+    if (r.status === 401) throw "token rejected";
+    if (r.status === 403) throw "token is not entitled to that account";
+    return r.json();
+  }).then(function (d) {
     var html = "", total = 0;
     d.invoices.forEach(function (i) {
       total += i.INVOICE_TOTAL;
@@ -59,7 +66,7 @@ function load() {
     html += "<tr class='tot'><td colspan='10'>TOTAL BILLED</td><td class='num'>" + money(total) + "</td></tr>";
     document.getElementById("rows").innerHTML = html;
     document.getElementById("err").textContent = "";
-  }).catch(function (e) { document.getElementById("err").textContent = "invoice-api unreachable on :8082 (" + e + ")"; });
+  }).catch(function (e) { document.getElementById("err").textContent = "invoice-api on :8082: " + e; });
 }
 document.getElementById("period").onchange = load;
 document.getElementById("go").onclick = load;

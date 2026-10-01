@@ -13,11 +13,25 @@ binaries land in bin/
   inventory-api  :8081   /sites  /circuits  /capacity
   billing-run    monthly invoice register, --json for the reconciliation feed
   billing-test   billing rule checks
-  invoice-api    :8082   /invoices?acct=...&period=...
+  invoice-api    :8082   /invoices?acct=...&period=...  (bearer token, audited)
   ipam           management address report (10.20.0.0/16)
 
 dashboard/index.html and dashboard/billing.html are static pages, open them in
 a browser with inventory-api and invoice-api running.
+
+invoice-api serves customer names, tax ids, service addresses and balances, so
+every request needs "Authorization: Bearer <token>". callers live in a keys
+file (--keys or INVOICE_API_KEYS, chmod 600), one per line:
+
+  <caller-id> <token, 32+ chars> <* | ACCT_ID,ACCT_ID,...>
+
+a caller only ever sees the accounts in its scope. every request, allowed or
+refused, is appended to the audit log (--audit-log or INVOICE_API_AUDIT_LOG) as
+a json line with the caller, peer address, request and the ACCT_ID/PERIOD pairs
+returned; if the log cannot be written the response is withheld. the server
+will not start without both. CORS is limited to --allow-origin (default
+http://localhost:8083, the register page). make demo writes a random
+register-demo caller to invoice-api.keys and prints its token for billing.html.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
