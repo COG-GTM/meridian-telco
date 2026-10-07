@@ -3,10 +3,13 @@ CXXFLAGS = -O2 -Wall
 LDFLAGS = -lsqlite3
 BIN = bin
 
-MEDIATION_OBJS = mediation/capacity.o mediation/status.o mediation/circuit_counter.o mediation/store.o mediation/locations.o
-BILLING_OBJS = billing/rating.o billing/discounts.o billing/accounts.o billing/tax.o \
-               billing/proration.o billing/promo.o billing/suspension.o billing/lines.o \
-               billing/latefee.o billing/invoice.o
+# shared business rules, git submodule (git submodule update --init)
+TELCO_RULES_DIR = third_party/telco-rules
+include $(TELCO_RULES_DIR)/telco-rules.mk
+CPPFLAGS = $(TELCO_RULES_CPPFLAGS)
+
+MEDIATION_OBJS = mediation/circuit_counter.o mediation/store.o mediation/locations.o $(TELCO_RULES_OBJS)
+BILLING_OBJS = billing/accounts.o billing/invoice.o $(TELCO_RULES_OBJS)
 
 all: $(BIN)/mediation $(BIN)/inventory-api $(BIN)/billing-run $(BIN)/invoice-api $(BIN)/ipam
 
@@ -28,11 +31,11 @@ $(BIN)/invoice-api: $(BILLING_OBJS) billing/invoice-api/main.o | $(BIN)
 $(BIN)/billing-test: $(BILLING_OBJS) billing/rules_test.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-$(BIN)/ipam: network/ipam.o | $(BIN)
+$(BIN)/ipam: network/ipam.o $(TELCO_RULES_OBJS) | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 run: all
 	$(BIN)/mediation --data data --db meridian.db
@@ -50,6 +53,6 @@ demo: all
 	 wait
 
 clean:
-	rm -f $(BIN)/* */*.o */*/*.o meridian.db
+	rm -f $(BIN)/* */*.o */*/*.o $(TELCO_RULES_OBJS) meridian.db
 
 .PHONY: all run check register demo clean

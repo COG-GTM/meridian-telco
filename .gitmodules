@@ -1,0 +1,3 @@
+[submodule "third_party/telco-rules"]
+	path = third_party/telco-rules
+	url = https://github.com/COG-GTM/telco-rules.git

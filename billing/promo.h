@@ -1,9 +1,10 @@
 #ifndef MERIDIAN_PROMO_H
 #define MERIDIAN_PROMO_H
 
-#include <string>
+/* promo rules live in telco-rules (third_party/telco-rules), DECISIONS.md D-02 */
+#include "telco_rules/promo.h"
 
-bool promo_is_live(const std::string &issued_on, const std::string &period);
-double promo_credit(double amount, const std::string &issued_on, const std::string &period);
+using telco_rules::promo_is_live;
+using telco_rules::promo_credit;
 
 #endif

@@ -1,7 +1,10 @@
 #ifndef MERIDIAN_SUSPENSION_H
 #define MERIDIAN_SUSPENSION_H
 
-int suspended_days(int start_day, int end_day);
-double suspension_credit(double monthly_fee, int start_day, int end_day);
+/* suspension rules live in telco-rules (third_party/telco-rules), DECISIONS.md D-04 */
+#include "telco_rules/suspension.h"
+
+using telco_rules::suspended_days;
+using telco_rules::suspension_credit;
 
 #endif

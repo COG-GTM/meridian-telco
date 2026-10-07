@@ -1,10 +1,10 @@
 #ifndef MERIDIAN_LINES_H
 #define MERIDIAN_LINES_H
 
-/* multi line discount off the recurring charge. 3 to 9 lines 5%, 10 or more
-   10%. same schedule finance publishes in the rate card. */
+/* multi line discount rules live in telco-rules (third_party/telco-rules) */
+#include "telco_rules/lines.h"
 
-double multi_line_pct(int line_count);
-double multi_line_discount(double recurring_charge, int line_count);
+using telco_rules::multi_line_pct;
+using telco_rules::multi_line_discount;
 
 #endif

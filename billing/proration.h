@@ -1,11 +1,11 @@
 #ifndef MERIDIAN_PRORATION_H
 #define MERIDIAN_PRORATION_H
 
-#include <string>
+/* proration rules live in telco-rules (third_party/telco-rules), DECISIONS.md D-05 */
+#include "telco_rules/proration.h"
 
-#define BILLING_MONTH_DAYS 30
-
-double daily_rate(double monthly_fee);
-double prorated_plan_charge(double monthly_fee, double prev_monthly_fee, int change_day);
+using telco_rules::BILLING_MONTH_DAYS;
+using telco_rules::daily_rate;
+using telco_rules::prorated_plan_charge;
 
 #endif

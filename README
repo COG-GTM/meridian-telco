@@ -1,6 +1,7 @@
 meridian oss
 ============
 
+clone:  git clone --recurse-submodules  (or: git submodule update --init)
 build:  make
 run:    make run          (rebuilds meridian.db from data/)
 check:  make check        (billing rule checks, bin/billing-test)
@@ -26,21 +27,33 @@ serviceable locations come from data/locations.csv.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
 
-billing rules, one file each, all of them go through billing/invoice.cpp:
+business rules live in the shared telco-rules library, vendored as a git
+submodule in third_party/telco-rules (COG-GTM/telco-rules). vantage-telco uses
+the same library. every rule where the two estates used to differ, and how it
+was settled, is in third_party/telco-rules/DECISIONS.md. do not change a rule
+here, change it there with a ticket.
 
-  rating.cpp      whole gigabytes, partial gigs round up, $10 a gig over plan
-  proration.cpp   30 day billing month, mid cycle plan changes split on it
-  promo.cpp       promo credits expire at the end of the cycle they were issued
-  suspension.cpp  a suspended line is billed the full month, no credit
-  lines.cpp       3-9 lines 5% off recurring, 10+ lines 10%
-  latefee.cpp     10 day grace after the due date, then 1.5% of the balance
-  tax.cpp         GST/HST on the pre discount amount, PST/QST on what is paid
-  discounts.cpp   loyalty credit off the subtotal
+billing/invoice.cpp maps the account record onto telco_rules::compute_invoice.
+the billing/*.h headers forward to the library:
+
+  rating.h      whole gigabytes, partial gigs round up, $10 a gig over plan
+  proration.h   30 day billing month, mid cycle plan changes split on it
+  promo.h       promo credits expire at the end of the cycle they were issued
+  suspension.h  a suspended line is billed the full month, no credit
+  lines.h       3-9 lines 5% off recurring, 10+ lines 10%
+  latefee.h     10 day grace after the due date, then 1.5% of the balance
+  tax.h         GST/HST on the pre discount amount, PST/QST on what is paid
+  discounts.h   loyalty credit off the subtotal
+
+mediation/capacity.h, status.h and the circuit roll-up use the library's
+capacity (no maintenance reserve), status code and circuit rules, and
+network/ipam.cpp takes the supernet and reserved ranges from it.
 
 the provinces we bill are BC, AB, ON and QC. the province is on the account
 record (PROVINCE=) and on the invoice register page.
 
-vantage-telco rates the same accounts differently. tools/parity in that repo
-runs both registers off the same usage feed and prints the differences.
+vantage-telco rates the same accounts through the same library. tools/parity in
+that repo runs both registers off the same usage feed and prints any
+differences; it should come back clean.
 
 contacts: ops-eng (pager), billing questions -> finance

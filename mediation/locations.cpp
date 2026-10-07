@@ -28,5 +28,5 @@ int location_available_mbps(const Location &loc) {
 }
 
 bool location_can_support(const Location &loc, int requested_mbps) {
-  return location_available_mbps(loc) >= requested_mbps;
+  return telco_rules::can_support(loc.total_cap_mbps, loc.alloc_cap_mbps, requested_mbps);
 }

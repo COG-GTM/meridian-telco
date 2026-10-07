@@ -4,10 +4,11 @@
 #include <string>
 #include <vector>
 #include "csv.h"
+#include "telco_rules/circuits.h"
 
-#define ROLE_PRIMARY 1
-#define ROLE_STANDBY 2
-#define ROLE_FAILOVER 3
+using telco_rules::ROLE_PRIMARY;
+using telco_rules::ROLE_STANDBY;
+using telco_rules::ROLE_FAILOVER;
 
 int count_active_circuits(const std::vector<Row> &circuits);
 int sum_active_capacity(const std::vector<Row> &circuits);
