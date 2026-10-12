@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 539
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":500,"locations":[{"LOC_CD":"LKN-04","CUST_NM":"Willow Grove Retail Group","LOC_NM":"Lakeshore North Distribution","MARKET_CD":"CHI-05","TOTAL_CAP_MBPS":4000,"ALLOC_CAP_MBPS":2600,"AVAIL_CAP_MBPS":1400,"UTILIZATION_PCT":65,"CAN_SUPPORT":true},{"LOC_CD":"CHI-20","CUST_NM":"Beacon Manufacturing Corp","LOC_NM":"Chicago Machining Works","MARKET_CD":"CHI-05","TOTAL_CAP_MBPS":4000,"ALLOC_CAP_MBPS":2200,"AVAIL_CAP_MBPS":1800,"UTILIZATION_PCT":55,"CAN_SUPPORT":true}]}

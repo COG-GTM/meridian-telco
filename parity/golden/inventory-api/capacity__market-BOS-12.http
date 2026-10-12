@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 751
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":0,"locations":[{"LOC_CD":"RIV-01","CUST_NM":"Beacon Manufacturing Corp","LOC_NM":"Riverside Crossing - Quincy Plant","MARKET_CD":"BOS-12","TOTAL_CAP_MBPS":1000,"ALLOC_CAP_MBPS":600,"AVAIL_CAP_MBPS":400,"UTILIZATION_PCT":60,"CAN_SUPPORT":true},{"LOC_CD":"OAK-07","CUST_NM":"Northgate Logistics LLC","LOC_NM":"Oakview Micro-Site Yard","MARKET_CD":"BOS-12","TOTAL_CAP_MBPS":1000,"ALLOC_CAP_MBPS":250,"AVAIL_CAP_MBPS":750,"UTILIZATION_PCT":25,"CAN_SUPPORT":true},{"LOC_CD":"BOS-22","CUST_NM":"Kingsley Media Networks","LOC_NM":"Boston Studio Complex","MARKET_CD":"BOS-12","TOTAL_CAP_MBPS":2000,"ALLOC_CAP_MBPS":900,"AVAIL_CAP_MBPS":1100,"UTILIZATION_PCT":45,"CAN_SUPPORT":true}]}

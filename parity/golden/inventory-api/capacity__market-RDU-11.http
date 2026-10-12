@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 302
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":0,"locations":[{"LOC_CD":"RDU-11","CUST_NM":"Foxglove Biotech","LOC_NM":"Research Triangle Annex","MARKET_CD":"RDU-11","TOTAL_CAP_MBPS":2000,"ALLOC_CAP_MBPS":1100,"AVAIL_CAP_MBPS":900,"UTILIZATION_PCT":55,"CAN_SUPPORT":true}]}

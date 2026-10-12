@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 317
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":500,"locations":[{"LOC_CD":"DTW-12","CUST_NM":"Willow Grove Retail Group","LOC_NM":"Detroit Fulfillment Center","MARKET_CD":"DTW-08","TOTAL_CAP_MBPS":2000,"ALLOC_CAP_MBPS":1640,"AVAIL_CAP_MBPS":360,"UTILIZATION_PCT":82,"CAN_SUPPORT":false}]}

@@ -1,0 +1,19 @@
+name: parity-golden
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  capture:
+    # pinned: the sqlite3 CLI's .dump float formatting is part of the golden db dump
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev sqlite3
+      - run: parity/capture.sh
+      - name: golden outputs are up to date
+        run: git status --porcelain parity/golden && git diff --exit-code --stat parity/golden && test -z "$(git status --porcelain parity/golden)"
+      - name: capture is reproducible
+        run: SKIP_BUILD=1 parity/capture.sh "$RUNNER_TEMP/rerun" && diff -r parity/golden "$RUNNER_TEMP/rerun"

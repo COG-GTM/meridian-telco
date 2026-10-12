@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 315
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":0,"locations":[{"LOC_CD":"CHS-10","CUST_NM":"Cedar Point Health Systems","LOC_NM":"Charleston Outpatient Center","MARKET_CD":"CHS-02","TOTAL_CAP_MBPS":500,"ALLOC_CAP_MBPS":260,"AVAIL_CAP_MBPS":240,"UTILIZATION_PCT":52,"CAN_SUPPORT":true}]}

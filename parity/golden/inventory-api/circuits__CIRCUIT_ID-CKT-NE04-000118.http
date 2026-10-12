@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 225
+Connection: close
+
+{"count":1,"active_count":1,"circuits":[{"CIRCUIT_ID":"CKT-NE04-000118","CIRCUIT_NM":"Downtown Fiber Ring","A_ASSET_ID":104432,"Z_ASSET_ID":101187,"CAP_MBPS":1000,"ALLOC_MBPS":600,"ROLE_CD":1,"STATUS_CD":1,"AVAIL_MBPS":400}]}

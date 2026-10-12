@@ -1,0 +1,7 @@
+HTTP/1.1 404 ERROR
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 21
+Connection: close
+
+{"error":"not found"}

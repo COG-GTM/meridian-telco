@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 316
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":0,"locations":[{"LOC_CD":"GRH-02","CUST_NM":"Cedar Point Health Systems","LOC_NM":"Granite Hill Medical Campus","MARKET_CD":"BOS-14","TOTAL_CAP_MBPS":2000,"ALLOC_CAP_MBPS":1250,"AVAIL_CAP_MBPS":750,"UTILIZATION_PCT":62,"CAN_SUPPORT":true}]}
