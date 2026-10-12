@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 315
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":500,"locations":[{"LOC_CD":"PVD-09","CUST_NM":"Northgate Logistics LLC","LOC_NM":"Providence Freight Terminal","MARKET_CD":"PVD-03","TOTAL_CAP_MBPS":1000,"ALLOC_CAP_MBPS":850,"AVAIL_CAP_MBPS":150,"UTILIZATION_PCT":85,"CAN_SUPPORT":false}]}

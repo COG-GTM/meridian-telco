@@ -1,0 +1,23 @@
+ok   full month is the plan fee
+ok   half month on each plan
+ok   july and february prorate alike
+ok   promo issued in cycle is live
+ok   promo issued last cycle is dead
+ok   dead promo credits nothing
+ok   suspended days counted
+ok   suspension credits nothing
+ok   two lines no discount
+ok   three lines five percent
+ok   ten lines ten percent
+ok   discount off recurring
+ok   inside grace no fee
+ok   past grace one and a half percent
+ok   bc gst on pre discount
+ok   bc pst on post discount
+ok   ontario hst is 13
+ok   ontario has no separate provincial line
+ok   quebec provincial line is qst
+ok   quebec qst on post discount
+ok   alberta has no provincial tax
+
+all checks passed

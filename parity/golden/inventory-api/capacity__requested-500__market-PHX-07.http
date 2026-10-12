@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 311
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":500,"locations":[{"LOC_CD":"DNM-05","CUST_NM":"Stonebridge Financial","LOC_NM":"Dunmore Tower Data Hall","MARKET_CD":"PHX-07","TOTAL_CAP_MBPS":10000,"ALLOC_CAP_MBPS":6400,"AVAIL_CAP_MBPS":3600,"UTILIZATION_PCT":64,"CAN_SUPPORT":true}]}

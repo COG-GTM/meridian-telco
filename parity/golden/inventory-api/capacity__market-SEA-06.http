@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Content-Length: 528
+Connection: close
+
+{"rule":"AVAIL_CAP_MBPS = TOTAL_CAP_MBPS - ALLOC_CAP_MBPS","requested_mbps":0,"locations":[{"LOC_CD":"WHS-06","CUST_NM":"Kingsley Media Networks","LOC_NM":"Whitfield Summit Broadcast","MARKET_CD":"SEA-06","TOTAL_CAP_MBPS":4000,"ALLOC_CAP_MBPS":2900,"AVAIL_CAP_MBPS":1100,"UTILIZATION_PCT":72,"CAN_SUPPORT":true},{"LOC_CD":"SEA-21","CUST_NM":"Stonebridge Financial","LOC_NM":"Seattle Trading Floor","MARKET_CD":"SEA-06","TOTAL_CAP_MBPS":10000,"ALLOC_CAP_MBPS":7800,"AVAIL_CAP_MBPS":2200,"UTILIZATION_PCT":78,"CAN_SUPPORT":true}]}
