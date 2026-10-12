@@ -53,3 +53,18 @@ clean:
 	rm -f $(BIN)/* */*.o */*/*.o meridian.db
 
 .PHONY: all run check register demo clean
+
+# python port (src/meridian). PYTHON=.venv/bin/python to use a venv.
+PYTHON ?= python3
+
+py-install:
+	$(PYTHON) -m pip install -e '.[dev]'
+
+py-test:
+	$(PYTHON) -m pytest
+
+py-lint:
+	$(PYTHON) -m ruff check src tests
+	$(PYTHON) -m ruff format --check src tests
+
+.PHONY: py-install py-test py-lint
