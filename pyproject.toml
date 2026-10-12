@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meridian"
+version = "0.1.0"
+description = "Python port of the meridian OSS (mediation, billing, inventory-api, invoice-api, ipam)"
+readme = "README"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.4"]
+
+[project.scripts]
+meridian-mediation = "meridian.mediation.ingest:main"
+meridian-inventory-api = "meridian.inventory_api.main:main"
+meridian-billing-run = "meridian.billing.run_billing:main"
+meridian-invoice-api = "meridian.invoice_api.main:main"
+meridian-billing-test = "meridian.billing.rules_check:main"
+meridian-ipam = "meridian.network.ipam:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]

@@ -44,3 +44,13 @@ vantage-telco rates the same accounts differently. tools/parity in that repo
 runs both registers off the same usage feed and prints the differences.
 
 contacts: ops-eng (pager), billing questions -> finance
+
+python port (in progress, src/meridian, stdlib only, python 3.10+):
+
+  make py-install   pip install -e '.[dev]'   (PYTHON=.venv/bin/python for a venv)
+  make py-test      pytest
+  make py-lint      ruff check + ruff format --check
+
+console scripts meridian-mediation, meridian-inventory-api, meridian-billing-run,
+meridian-invoice-api, meridian-billing-test and meridian-ipam take the same flags
+as the binaries above; they exit 2 with "not ported yet" until each is ported.
