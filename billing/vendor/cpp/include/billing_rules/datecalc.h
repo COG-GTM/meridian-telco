@@ -1,11 +1,13 @@
-#ifndef MERIDIAN_DATECALC_H
-#define MERIDIAN_DATECALC_H
+#ifndef BILLING_RULES_DATECALC_H
+#define BILLING_RULES_DATECALC_H
 
-#include <string>
 #include <cstdlib>
+#include <string>
 
-/* date helpers for the billing run. dates arrive as YYYY-MM-DD strings out of
-   the account records, periods as YYYY-MM. */
+/* Date helpers for the billing rules. Dates arrive as YYYY-MM-DD strings,
+   periods as YYYY-MM. */
+
+namespace billing_rules {
 
 struct BillDate {
   int y;
@@ -56,5 +58,7 @@ inline int calendar_days_in_month(int y, int m) {
   if (m == 2 && ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0)) return 29;
   return len[m - 1];
 }
+
+}  // namespace billing_rules
 
 #endif
