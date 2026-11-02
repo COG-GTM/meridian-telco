@@ -1,0 +1,3 @@
+[submodule "vendor/capacity-lib"]
+	path = vendor/capacity-lib
+	url = https://github.com/COG-GTM/capacity-lib.git
