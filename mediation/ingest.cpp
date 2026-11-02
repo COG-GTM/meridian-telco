@@ -32,12 +32,14 @@ int main(int argc, char **argv) {
   st.load_circuits(circuits);
 
   int countable = 0;
-  long total = 0, alloc = 0;
+  long total = 0, alloc = 0, avail = 0;
   for (size_t i = 0; i < sites.size(); i++) {
     Row r = sites[i];
     if (status_is_countable(to_int(r["STATUS_CD"]))) countable++;
     total += to_int(r["TOTAL_CAP_MBPS"]);
     alloc += to_int(r["ALLOC_CAP_MBPS"]);
+    /* per site, so the buffer rounds the same way as /sites */
+    avail += available_capacity(to_int(r["TOTAL_CAP_MBPS"]), to_int(r["ALLOC_CAP_MBPS"]));
   }
 
   printf("mediation run complete\n");
@@ -46,7 +48,7 @@ int main(int argc, char **argv) {
   printf("  circuits loaded   : %d\n", (int)circuits.size());
   printf("  active circuits   : %d\n", count_active_circuits(circuits));
   printf("  active capacity   : %d mbps\n", sum_active_capacity(circuits));
-  printf("  available capacity: %d mbps\n", available_capacity((int)total, (int)alloc));
+  printf("  available capacity: %d mbps\n", (int)avail);
   printf("  utilization       : %d%%\n", utilization_pct((int)total, (int)alloc));
   return 0;
 }
