@@ -3,9 +3,11 @@ meridian oss
 
 build:  make
 run:    make run          (rebuilds meridian.db from data/)
-check:  make check        (billing rule checks, bin/billing-test)
+check:  make check        (billing rule checks, capacity checks, capacity-lib tests)
 reg:    make register     (invoice register for 2026-07)
-demo:   make demo         (invoice-api :8082 + dashboard pages on :8083)
+demo:   make demo         (inventory-api :8081 + invoice-api :8082 + dashboard pages on :8083)
+
+first clone: git submodule update --init   (vendor/capacity-lib)
 
 binaries land in bin/
 
@@ -13,6 +15,7 @@ binaries land in bin/
   inventory-api  :8081   /sites  /circuits  /capacity
   billing-run    monthly invoice register, --json for the reconciliation feed
   billing-test   billing rule checks
+  capacity-test  capacity checks against data/locations.csv
   invoice-api    :8082   /invoices?acct=...&period=...
   ipam           management address report (10.20.0.0/16)
 
@@ -21,7 +24,14 @@ a browser with inventory-api and invoice-api running.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
-available = total - allocated, we do not hold back a maintenance buffer.
+available = total - allocated - maintenance buffer, buffer = 10% of total.
+
+capacity arithmetic (mediation/capacity.cpp, mediation/locations.cpp) is not
+ours any more: it calls capacity-lib, vendored as a git submodule in
+vendor/capacity-lib (https://github.com/COG-GTM/capacity-lib). vantage-telco
+calls the same library, so both systems quote the same sellable bandwidth.
+/sites, /circuits and /capacity all report the buffer (BUFFER_CAP_MBPS /
+BUFFER_MBPS) next to the available figure.
 serviceable locations come from data/locations.csv.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
@@ -42,5 +52,7 @@ record (PROVINCE=) and on the invoice register page.
 
 vantage-telco rates the same accounts differently. tools/parity in that repo
 runs both registers off the same usage feed and prints the differences.
+tools/parity/capacity_parity.py there does the same for the sales capacity
+check (should report zero differences).
 
 contacts: ops-eng (pager), billing questions -> finance

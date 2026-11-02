@@ -1,12 +1,13 @@
 #include "capacity.h"
+#include <capacity_lib/capacity.h>
 
-/* capacity math. total minus allocated, that is it.
-   RS 2009-11 */
+int maintenance_buffer_mbps(int total_mbps) {
+  return capacity_lib::maintenance_buffer_mbps(total_mbps);
+}
 
 int available_capacity(int total_mbps, int allocated_mbps) {
-  int avail = total_mbps - allocated_mbps;
-  if (avail < 0) avail = 0;
-  return avail;
+  return capacity_lib::available_capacity(total_mbps, allocated_mbps,
+                                          capacity_lib::maintenance_buffer_mbps(total_mbps));
 }
 
 int utilization_pct(int total_mbps, int allocated_mbps) {

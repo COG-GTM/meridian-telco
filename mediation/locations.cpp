@@ -1,10 +1,10 @@
 #include "locations.h"
-#include "capacity.h"
+#include <capacity_lib/capacity.h>
 #include "csv.h"
 
 /* the sales desk asks one question: how much is left at this location.
-   answer is whatever the location is not already using. we do not hold
-   anything back. */
+   answer comes from the shared capacity-lib: what the location is not
+   already using, less the standard maintenance buffer. */
 
 std::vector<Location> load_locations(const std::string &csv_path) {
   std::vector<Location> out;
@@ -23,10 +23,15 @@ std::vector<Location> load_locations(const std::string &csv_path) {
   return out;
 }
 
+int location_buffer_mbps(const Location &loc) {
+  return capacity_lib::maintenance_buffer_mbps(loc.total_cap_mbps);
+}
+
 int location_available_mbps(const Location &loc) {
-  return available_capacity(loc.total_cap_mbps, loc.alloc_cap_mbps);
+  return capacity_lib::available_capacity(loc.total_cap_mbps, loc.alloc_cap_mbps,
+                                          location_buffer_mbps(loc));
 }
 
 bool location_can_support(const Location &loc, int requested_mbps) {
-  return location_available_mbps(loc) >= requested_mbps;
+  return capacity_lib::can_support(loc.total_cap_mbps, loc.alloc_cap_mbps, requested_mbps);
 }
