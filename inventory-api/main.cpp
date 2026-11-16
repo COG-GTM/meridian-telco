@@ -52,11 +52,6 @@ static std::string handle_sites(const HttpRequest &req, int *status) {
   return out;
 }
 
-/* circuits carry no maintenance buffer today; honour one if the feed adds it */
-static int circuit_buffer_mbps(Row &r) {
-  return r.count("MAINT_BUFFER_MBPS") ? to_int(r["MAINT_BUFFER_MBPS"]) : 0;
-}
-
 static std::string handle_circuits(const HttpRequest &req, int *status) {
   (void)status;
   std::map<std::string, std::string> q = req.query;
@@ -82,7 +77,8 @@ static std::string handle_circuits(const HttpRequest &req, int *status) {
              r["CIRCUIT_ID"].c_str(), json_escape(r["CIRCUIT_NM"]).c_str(),
              r["A_ASSET_ID"].c_str(), r["Z_ASSET_ID"].c_str(), r["CAP_MBPS"].c_str(),
              r["ALLOC_MBPS"].c_str(), r["ROLE_CD"].c_str(), r["STATUS_CD"].c_str(),
-             available_capacity(to_int(r["CAP_MBPS"]), to_int(r["ALLOC_MBPS"]), circuit_buffer_mbps(r)));
+             /* circuits carry no maintenance buffer field, so nothing is held back */
+             available_capacity(to_int(r["CAP_MBPS"]), to_int(r["ALLOC_MBPS"]), 0));
     if (i) out += ",";
     out += buf;
   }
