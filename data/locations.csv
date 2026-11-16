@@ -1,23 +1,23 @@
-LOC_CD,CUST_NM,LOC_NM,MARKET_CD,TOTAL_CAP_MBPS,ALLOC_CAP_MBPS
-RIV-01,Beacon Manufacturing Corp,Riverside Crossing - Quincy Plant,BOS-12,1000,600
-GRH-02,Cedar Point Health Systems,Granite Hill Medical Campus,BOS-14,2000,1250
-FVR-03,Foxglove Biotech,Fairview Ridge Labs,ATL-09,1000,720
-LKN-04,Willow Grove Retail Group,Lakeshore North Distribution,CHI-05,4000,2600
-DNM-05,Stonebridge Financial,Dunmore Tower Data Hall,PHX-07,10000,6400
-WHS-06,Kingsley Media Networks,Whitfield Summit Broadcast,SEA-06,4000,2900
-OAK-07,Northgate Logistics LLC,Oakview Micro-Site Yard,BOS-12,1000,250
-ASH-08,Ashford Public Schools,Ashford District Office,MAN-06,500,300
-PVD-09,Northgate Logistics LLC,Providence Freight Terminal,PVD-03,1000,850
-CHS-10,Cedar Point Health Systems,Charleston Outpatient Center,CHS-02,500,260
-RDU-11,Foxglove Biotech,Research Triangle Annex,RDU-11,2000,1100
-DTW-12,Willow Grove Retail Group,Detroit Fulfillment Center,DTW-08,2000,1640
-MSP-13,Stonebridge Financial,Minneapolis Back Office,MSP-04,1000,500
-DAL-14,Kingsley Media Networks,Dallas Production Facility,DAL-13,4000,3100
-ABQ-15,Ashford Public Schools,Albuquerque Campus Network,ABQ-02,500,380
-PDX-16,Beacon Manufacturing Corp,Portland Components Plant,PDX-04,2000,1400
-BOI-17,Northgate Logistics LLC,Boise Regional Depot,BOI-01,1000,620
-PHL-18,Cedar Point Health Systems,Philadelphia Imaging Center,PHL-05,1000,700
-ATL-19,Willow Grove Retail Group,Atlanta Flagship Store,ATL-09,500,340
-CHI-20,Beacon Manufacturing Corp,Chicago Machining Works,CHI-05,4000,2200
-SEA-21,Stonebridge Financial,Seattle Trading Floor,SEA-06,10000,7800
-BOS-22,Kingsley Media Networks,Boston Studio Complex,BOS-12,2000,900
+LOC_CD,CUST_NM,LOC_NM,MARKET_CD,TOTAL_CAP_MBPS,ALLOC_CAP_MBPS,MAINT_BUFFER_MBPS
+RIV-01,Beacon Manufacturing Corp,Riverside Crossing - Quincy Plant,BOS-12,1000,600,150
+GRH-02,Cedar Point Health Systems,Granite Hill Medical Campus,BOS-14,2000,1250,200
+FVR-03,Foxglove Biotech,Fairview Ridge Labs,ATL-09,1000,720,100
+LKN-04,Willow Grove Retail Group,Lakeshore North Distribution,CHI-05,4000,2600,400
+DNM-05,Stonebridge Financial,Dunmore Tower Data Hall,PHX-07,10000,6400,800
+WHS-06,Kingsley Media Networks,Whitfield Summit Broadcast,SEA-06,4000,2900,250
+OAK-07,Northgate Logistics LLC,Oakview Micro-Site Yard,BOS-12,1000,250,50
+ASH-08,Ashford Public Schools,Ashford District Office,MAN-06,500,300,50
+PVD-09,Northgate Logistics LLC,Providence Freight Terminal,PVD-03,1000,850,100
+CHS-10,Cedar Point Health Systems,Charleston Outpatient Center,CHS-02,500,260,50
+RDU-11,Foxglove Biotech,Research Triangle Annex,RDU-11,2000,1100,150
+DTW-12,Willow Grove Retail Group,Detroit Fulfillment Center,DTW-08,2000,1640,200
+MSP-13,Stonebridge Financial,Minneapolis Back Office,MSP-04,1000,500,100
+DAL-14,Kingsley Media Networks,Dallas Production Facility,DAL-13,4000,3100,300
+ABQ-15,Ashford Public Schools,Albuquerque Campus Network,ABQ-02,500,380,50
+PDX-16,Beacon Manufacturing Corp,Portland Components Plant,PDX-04,2000,1400,200
+BOI-17,Northgate Logistics LLC,Boise Regional Depot,BOI-01,1000,620,100
+PHL-18,Cedar Point Health Systems,Philadelphia Imaging Center,PHL-05,1000,700,150
+ATL-19,Willow Grove Retail Group,Atlanta Flagship Store,ATL-09,500,340,50
+CHI-20,Beacon Manufacturing Corp,Chicago Machining Works,CHI-05,4000,2200,400
+SEA-21,Stonebridge Financial,Seattle Trading Floor,SEA-06,10000,7800,700
+BOS-22,Kingsley Media Networks,Boston Studio Complex,BOS-12,2000,900,200

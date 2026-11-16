@@ -3,7 +3,7 @@ meridian oss
 
 build:  make
 run:    make run          (rebuilds meridian.db from data/)
-check:  make check        (billing rule checks, bin/billing-test)
+check:  make check        (billing rule checks + shared capacity golden vectors)
 reg:    make register     (invoice register for 2026-07)
 demo:   make demo         (invoice-api :8082 + dashboard pages on :8083)
 
@@ -13,6 +13,7 @@ binaries land in bin/
   inventory-api  :8081   /sites  /circuits  /capacity
   billing-run    monthly invoice register, --json for the reconciliation feed
   billing-test   billing rule checks
+  capacity-test  shared capacity rules, runs third_party/.../spec/vectors.json
   invoice-api    :8082   /invoices?acct=...&period=...
   ipam           management address report (10.20.0.0/16)
 
@@ -21,8 +22,14 @@ a browser with inventory-api and invoice-api running.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
-available = total - allocated, we do not hold back a maintenance buffer.
+available = max(total - allocated - maintenance buffer, 0). the maintenance
+buffer (MAINT_BUFFER_MBPS) is reserved capacity and is never sold.
 serviceable locations come from data/locations.csv.
+
+the capacity rule is not ours to change locally. mediation/capacity.cpp
+delegates to the shared header in third_party/telco-capacity-rules (git
+submodule of COG-GTM/telco-capacity-rules, rule written up in its SPEC.md).
+clone with --recurse-submodules or run: git submodule update --init
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
 

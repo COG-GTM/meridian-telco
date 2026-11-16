@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -O2 -Wall
+CAPACITY_RULES = third_party/telco-capacity-rules
+CXXFLAGS = -O2 -Wall -I$(CAPACITY_RULES)/cpp/include
 LDFLAGS = -lsqlite3
 BIN = bin
 
@@ -28,6 +29,9 @@ $(BIN)/invoice-api: $(BILLING_OBJS) billing/invoice-api/main.o | $(BIN)
 $(BIN)/billing-test: $(BILLING_OBJS) billing/rules_test.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
+$(BIN)/capacity-test: $(MEDIATION_OBJS) mediation/capacity_test.o | $(BIN)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
 $(BIN)/ipam: network/ipam.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
@@ -37,8 +41,11 @@ $(BIN)/ipam: network/ipam.o | $(BIN)
 run: all
 	$(BIN)/mediation --data data --db meridian.db
 
-check: $(BIN)/billing-test
+mediation/capacity.o: $(CAPACITY_RULES)/cpp/include/telco_capacity/capacity.h
+
+check: $(BIN)/billing-test $(BIN)/capacity-test
 	$(BIN)/billing-test
+	$(BIN)/capacity-test $(CAPACITY_RULES)/spec/vectors.json
 
 register: all
 	$(BIN)/billing-run --period 2026-07

@@ -1,0 +1,3 @@
+[submodule "third_party/telco-capacity-rules"]
+	path = third_party/telco-capacity-rules
+	url = https://github.com/COG-GTM/telco-capacity-rules.git
