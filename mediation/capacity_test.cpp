@@ -24,13 +24,13 @@ int main(int argc, char **argv) {
   const char *vectors = argc > 1 ? argv[1] : "third_party/capacity_core/test_vectors.json";
   const char *locations = argc > 2 ? argv[2] : "data/locations.csv";
 
-  std::vector<capacity_core::TestVector> cases = capacity_core::load_test_vectors(vectors);
+  std::vector<capacity_core::Vector> cases = capacity_core::load_vectors(vectors);
   if (cases.empty()) {
     printf("FAIL no capacity vectors in %s\n", vectors);
     return 1;
   }
   for (size_t i = 0; i < cases.size(); i++) {
-    const capacity_core::TestVector &v = cases[i];
+    const capacity_core::Vector &v = cases[i];
     int t = (int)v.total_mbps, a = (int)v.allocated_mbps, b = (int)v.maintenance_buffer_mbps;
     check(v.name + " available", available_capacity(t, a, b) == v.expect_available_mbps);
     check(v.name + " utilization", fabs(utilization_pct(t, a, b) - v.expect_utilization_pct) < 1e-9);
