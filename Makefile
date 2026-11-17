@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O2 -Wall
+CXXFLAGS = -O2 -Wall -Ithird_party/capacity_core
 LDFLAGS = -lsqlite3
 BIN = bin
 
@@ -28,17 +28,23 @@ $(BIN)/invoice-api: $(BILLING_OBJS) billing/invoice-api/main.o | $(BIN)
 $(BIN)/billing-test: $(BILLING_OBJS) billing/rules_test.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
+$(BIN)/capacity-test: $(MEDIATION_OBJS) mediation/capacity_test.o | $(BIN)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
 $(BIN)/ipam: network/ipam.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+mediation/capacity.o mediation/locations.o mediation/capacity_test.o:   third_party/capacity_core/capacity_core.h mediation/capacity.h mediation/locations.h
+
 run: all
 	$(BIN)/mediation --data data --db meridian.db
 
-check: $(BIN)/billing-test
+check: $(BIN)/billing-test $(BIN)/capacity-test
 	$(BIN)/billing-test
+	$(BIN)/capacity-test third_party/capacity_core/test_vectors.json data/locations.csv
 
 register: all
 	$(BIN)/billing-run --period 2026-07

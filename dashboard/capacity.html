@@ -128,8 +128,8 @@
   <div class="brand">Meridian Communications &middot; Operations Support</div>
   <h1>Serviceability &amp; Capacity Check</h1>
   <p>Enter the bandwidth a customer is asking for and this desk tool tells you whether their
-     location can carry it today. Availability is read straight from the inventory of record
-     &mdash; no reservations are held back.</p>
+     location can carry it today. Availability is read from the inventory of record, less the
+     maintenance buffer each location holds back for planned work.</p>
 </header>
 <main>
   <div class="controls">
@@ -168,10 +168,10 @@
           <span class="label">Available</span>
           <div class="tip">
             <h3>How availability is calculated</h3>
-            <div class="formula">AVAIL_CAP_MBPS = TOTAL_CAP_MBPS &minus; ALLOC_CAP_MBPS</div>
-            <p class="note">Everything not already allocated is treated as sellable. Meridian
-               does <strong>not</strong> withhold a maintenance buffer, so this is the full
-               remainder of the link.</p>
+            <div class="formula">AVAIL_CAP_MBPS = TOTAL_CAP_MBPS &minus; ALLOC_CAP_MBPS &minus; MAINT_BUFFER_MBPS</div>
+            <p class="note">Capacity reserved for maintenance is not sellable, so the buffer is
+               withheld (never below 0). Same rule as Vantage, from the shared
+               <code>telco-capacity-core</code> library.</p>
           </div>
         </th>
         <th class="num">Utilization</th>
@@ -182,7 +182,7 @@
   </table>
   <footer>
     Source: inventory-api <code>GET /capacity</code> &middot; capacity arithmetic from
-    <code>mediation/capacity.cpp</code> &middot; figures in Mbps.
+    <code>mediation/capacity.cpp</code> (shared <code>capacity_core.h</code>) &middot; figures in Mbps.
   </footer>
 </main>
 <script>
@@ -198,12 +198,13 @@ function render() {
   var need = requested();
   var market = document.getElementById("market").value;
   var q = document.getElementById("q").value.trim().toLowerCase();
-  var rows = "", shown = 0, serviceable = 0, avail = 0, first = true;
+  var rows = "", shown = 0, serviceable = 0, avail = 0, buffer = 0, first = true;
   LOCATIONS.forEach(function (l) {
     if (market && l.MARKET_CD !== market) return;
     if (q && (l.CUST_NM + " " + l.LOC_NM + " " + l.LOC_CD).toLowerCase().indexOf(q) === -1) return;
     shown++;
     avail += l.AVAIL_CAP_MBPS;
+    buffer += l.MAINT_BUFFER_MBPS || 0;
     var ok = l.AVAIL_CAP_MBPS >= need;
     if (ok) serviceable++;
     rows += "<tr class='" + (first ? "first" : "") + "'>" +
@@ -215,7 +216,8 @@ function render() {
       "<td class='num'>" + l.ALLOC_CAP_MBPS.toLocaleString() + "</td>" +
       "<td class='num avail'>" + l.AVAIL_CAP_MBPS.toLocaleString() +
         "<div class='calc'>" + l.TOTAL_CAP_MBPS.toLocaleString() + " &minus; " +
-        l.ALLOC_CAP_MBPS.toLocaleString() + "</div></td>" +
+        l.ALLOC_CAP_MBPS.toLocaleString() + " &minus; " +
+        (l.MAINT_BUFFER_MBPS || 0).toLocaleString() + "</div></td>" +
       "<td class='num'>" + l.UTILIZATION_PCT + "%" +
         "<div class='bar'><span style='width:" + Math.min(l.UTILIZATION_PCT, 100) + "%'></span></div></td>" +
       "<td><span class='verdict " + (ok ? "ok" : "no") + "'>" +
@@ -227,6 +229,7 @@ function render() {
   document.getElementById("statLocations").textContent = shown;
   document.getElementById("statServiceable").textContent = serviceable;
   document.getElementById("statAvail").textContent = avail.toLocaleString();
+  document.getElementById("statBuffer").textContent = buffer.toLocaleString();
 }
 
 fetch(API + "/capacity").then(function (r) { return r.json(); }).then(function (d) {
