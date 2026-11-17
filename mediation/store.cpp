@@ -1,26 +1,32 @@
 #include "store.h"
 #include <cstdio>
-#include <cstdlib>
-
-Store::Store() : db(0) {}
-
-Store::~Store() { close(); }
 
 bool Store::open(const std::string &path) {
-  if (sqlite3_open(path.c_str(), &db) != SQLITE_OK) {
+  sqlite3 *raw = nullptr;
+  const int rc = sqlite3_open(path.c_str(), &raw);
+  db_.reset(raw);
+  if (rc != SQLITE_OK) {
     fprintf(stderr, "cannot open store %s\n", path.c_str());
     return false;
   }
-  sqlite3_exec(db, "PRAGMA synchronous=OFF", 0, 0, 0);
+  exec("PRAGMA synchronous=OFF");
   return true;
 }
 
-void Store::close() {
-  if (db) { sqlite3_close(db); db = 0; }
+void Store::close() { db_.reset(); }
+
+bool Store::exec(const char *sql) {
+  return sqlite3_exec(db_.get(), sql, nullptr, nullptr, nullptr) == SQLITE_OK;
+}
+
+SqliteStmt Store::prepare(std::string_view sql) {
+  sqlite3_stmt *raw = nullptr;
+  sqlite3_prepare_v2(db_.get(), sql.data(), static_cast<int>(sql.size()), &raw, nullptr);
+  return SqliteStmt(raw);
 }
 
 void Store::create_schema() {
-  const char *ddl =
+  constexpr const char *ddl =
       "DROP TABLE IF EXISTS SITE;"
       "DROP TABLE IF EXISTS CIRCUIT;"
       "CREATE TABLE SITE("
@@ -33,68 +39,100 @@ void Store::create_schema() {
       " A_ASSET_ID INTEGER, Z_ASSET_ID INTEGER,"
       " CAP_MBPS INTEGER, ALLOC_MBPS INTEGER,"
       " ROLE_CD INTEGER, STATUS_CD INTEGER);";
-  char *err = 0;
-  if (sqlite3_exec(db, ddl, 0, 0, &err) != SQLITE_OK) {
-    fprintf(stderr, "ddl failed: %s\n", err ? err : "?");
-    if (err) sqlite3_free(err);
-  }
+  char *raw_err = nullptr;
+  const int rc = sqlite3_exec(db_.get(), ddl, nullptr, nullptr, &raw_err);
+  const SqliteErrMsg err(raw_err);
+  if (rc != SQLITE_OK) fprintf(stderr, "ddl failed: %s\n", err ? err.get() : "?");
 }
 
-static std::string esc(const std::string &s) {
-  std::string o;
-  for (size_t i = 0; i < s.size(); i++) {
-    if (s[i] == '\'') o += "''";
-    else o += s[i];
-  }
-  return o;
+namespace {
+
+void bind_text(sqlite3_stmt *stmt, int idx, std::string_view s) {
+  sqlite3_bind_text(stmt, idx, s.data(), static_cast<int>(s.size()), SQLITE_TRANSIENT);
 }
+
+/* coordinates were historically written as %f literals (6 decimals); bind the
+   same text and let the REAL column affinity convert it exactly as before */
+void bind_fixed6(sqlite3_stmt *stmt, int idx, double v) { bind_text(stmt, idx, std::to_string(v)); }
+
+void step_and_reset(sqlite3_stmt *stmt) {
+  sqlite3_step(stmt);
+  sqlite3_reset(stmt);
+  sqlite3_clear_bindings(stmt);
+}
+
+}  // namespace
 
 void Store::load_sites(const std::vector<Row> &rows) {
-  sqlite3_exec(db, "BEGIN", 0, 0, 0);
-  for (size_t i = 0; i < rows.size(); i++) {
-    Row r = rows[i];
-    char sql[2048];
-    snprintf(sql, sizeof(sql),
-             "INSERT OR REPLACE INTO SITE VALUES(%d,'%s','%s','%s',%f,%f,%d,'%s',%d,%d)",
-             to_int(r["ASSET_ID"]), esc(r["SITE_NM"]).c_str(), esc(r["SITE_CD"]).c_str(),
-             esc(r["REGION_CD"]).c_str(), to_dbl(r["LAT"]), to_dbl(r["LON"]),
-             to_int(r["STATUS_CD"]), esc(r["TOWER_REG"]).c_str(),
-             to_int(r["TOTAL_CAP_MBPS"]), to_int(r["ALLOC_CAP_MBPS"]));
-    sqlite3_exec(db, sql, 0, 0, 0);
+  exec("BEGIN");
+  if (SqliteStmt stmt = prepare("INSERT OR REPLACE INTO SITE VALUES(?,?,?,?,?,?,?,?,?,?)")) {
+    for (const Row &r : rows) {
+      sqlite3_stmt *s = stmt.get();
+      sqlite3_bind_int(s, 1, to_int(field(r, "ASSET_ID")));
+      bind_text(s, 2, field(r, "SITE_NM"));
+      bind_text(s, 3, field(r, "SITE_CD"));
+      bind_text(s, 4, field(r, "REGION_CD"));
+      bind_fixed6(s, 5, to_dbl(field(r, "LAT")));
+      bind_fixed6(s, 6, to_dbl(field(r, "LON")));
+      sqlite3_bind_int(s, 7, to_int(field(r, "STATUS_CD")));
+      bind_text(s, 8, field(r, "TOWER_REG"));
+      sqlite3_bind_int(s, 9, to_int(field(r, "TOTAL_CAP_MBPS")));
+      sqlite3_bind_int(s, 10, to_int(field(r, "ALLOC_CAP_MBPS")));
+      step_and_reset(s);
+    }
   }
-  sqlite3_exec(db, "COMMIT", 0, 0, 0);
+  exec("COMMIT");
 }
 
 void Store::load_circuits(const std::vector<Row> &rows) {
-  sqlite3_exec(db, "BEGIN", 0, 0, 0);
-  for (size_t i = 0; i < rows.size(); i++) {
-    Row r = rows[i];
-    char sql[2048];
-    snprintf(sql, sizeof(sql),
-             "INSERT OR REPLACE INTO CIRCUIT VALUES('%s','%s',%d,%d,%d,%d,%d,%d)",
-             esc(r["CIRCUIT_ID"]).c_str(), esc(r["CIRCUIT_NM"]).c_str(),
-             to_int(r["A_ASSET_ID"]), to_int(r["Z_ASSET_ID"]),
-             to_int(r["CAP_MBPS"]), to_int(r["ALLOC_MBPS"]),
-             to_int(r["ROLE_CD"]), to_int(r["STATUS_CD"]));
-    sqlite3_exec(db, sql, 0, 0, 0);
+  exec("BEGIN");
+  if (SqliteStmt stmt = prepare("INSERT OR REPLACE INTO CIRCUIT VALUES(?,?,?,?,?,?,?,?)")) {
+    for (const Row &r : rows) {
+      sqlite3_stmt *s = stmt.get();
+      bind_text(s, 1, field(r, "CIRCUIT_ID"));
+      bind_text(s, 2, field(r, "CIRCUIT_NM"));
+      sqlite3_bind_int(s, 3, to_int(field(r, "A_ASSET_ID")));
+      sqlite3_bind_int(s, 4, to_int(field(r, "Z_ASSET_ID")));
+      sqlite3_bind_int(s, 5, to_int(field(r, "CAP_MBPS")));
+      sqlite3_bind_int(s, 6, to_int(field(r, "ALLOC_MBPS")));
+      sqlite3_bind_int(s, 7, to_int(field(r, "ROLE_CD")));
+      sqlite3_bind_int(s, 8, to_int(field(r, "STATUS_CD")));
+      step_and_reset(s);
+    }
   }
-  sqlite3_exec(db, "COMMIT", 0, 0, 0);
+  exec("COMMIT");
 }
 
-static int collect(void *ctx, int argc, char **argv, char **cols) {
-  std::vector<Row> *out = (std::vector<Row> *)ctx;
-  Row r;
-  for (int i = 0; i < argc; i++) r[cols[i]] = argv[i] ? argv[i] : "";
-  out->push_back(r);
-  return 0;
-}
-
+/* runs every statement in sql (like sqlite3_exec) and collects result rows;
+   NULL columns come back as empty strings */
 std::vector<Row> Store::query(const std::string &sql) {
   std::vector<Row> out;
-  char *err = 0;
-  if (sqlite3_exec(db, sql.c_str(), collect, &out, &err) != SQLITE_OK) {
-    fprintf(stderr, "query failed: %s\n", err ? err : "?");
-    if (err) sqlite3_free(err);
+  std::string_view rest = sql;
+  while (!rest.empty()) {
+    sqlite3_stmt *raw = nullptr;
+    const char *tail = nullptr;
+    const int rc = sqlite3_prepare_v2(db_.get(), rest.data(), static_cast<int>(rest.size()), &raw, &tail);
+    const SqliteStmt stmt(raw);
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "query failed: %s\n", sqlite3_errmsg(db_.get()));
+      return out;
+    }
+    rest.remove_prefix(static_cast<size_t>(tail - rest.data()));
+    if (!stmt) continue;
+    int step;
+    while ((step = sqlite3_step(stmt.get())) == SQLITE_ROW) {
+      Row r;
+      const int ncol = sqlite3_column_count(stmt.get());
+      for (int i = 0; i < ncol; i++) {
+        const auto *text = reinterpret_cast<const char *>(sqlite3_column_text(stmt.get(), i));
+        r[sqlite3_column_name(stmt.get(), i)] = text ? text : "";
+      }
+      out.push_back(std::move(r));
+    }
+    if (step != SQLITE_DONE) {
+      fprintf(stderr, "query failed: %s\n", sqlite3_errmsg(db_.get()));
+      return out;
+    }
   }
   return out;
 }

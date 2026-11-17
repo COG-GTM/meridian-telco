@@ -8,17 +8,15 @@
 
 std::vector<Location> load_locations(const std::string &csv_path) {
   std::vector<Location> out;
-  std::vector<Row> rows = read_csv(csv_path);
-  for (size_t i = 0; i < rows.size(); i++) {
-    Row r = rows[i];
+  for (const Row &r : read_csv(csv_path)) {
     Location l;
-    l.loc_cd = r["LOC_CD"];
-    l.cust_nm = r["CUST_NM"];
-    l.loc_nm = r["LOC_NM"];
-    l.market_cd = r["MARKET_CD"];
-    l.total_cap_mbps = to_int(r["TOTAL_CAP_MBPS"]);
-    l.alloc_cap_mbps = to_int(r["ALLOC_CAP_MBPS"]);
-    out.push_back(l);
+    l.loc_cd = field(r, "LOC_CD");
+    l.cust_nm = field(r, "CUST_NM");
+    l.loc_nm = field(r, "LOC_NM");
+    l.market_cd = field(r, "MARKET_CD");
+    l.total_cap_mbps = to_int(field(r, "TOTAL_CAP_MBPS"));
+    l.alloc_cap_mbps = to_int(field(r, "ALLOC_CAP_MBPS"));
+    out.push_back(std::move(l));
   }
   return out;
 }
