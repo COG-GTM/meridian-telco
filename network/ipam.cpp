@@ -1,8 +1,6 @@
-#include <charconv>
 #include <cstdint>
 #include <cstdio>
 #include <map>
-#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -17,25 +15,10 @@
 
 namespace {
 
-std::optional<unsigned> take_number(std::string_view &s) {
-  unsigned v = 0;
-  auto [end, ec] = std::from_chars(s.data(), s.data() + s.size(), v);
-  if (ec != std::errc{}) return std::nullopt;
-  s.remove_prefix(static_cast<std::size_t>(end - s.data()));
-  return v;
-}
-
 std::uint32_t ip_to_u32(std::string_view ip) {
   unsigned parts[4] = {0, 0, 0, 0};
-  for (int i = 0; i < 4; i++) {
-    if (i > 0) {
-      if (ip.empty() || ip.front() != '.') break;
-      ip.remove_prefix(1);
-    }
-    auto n = take_number(ip);
-    if (!n) break;
-    parts[i] = *n;
-  }
+  const std::string text(ip);
+  std::sscanf(text.c_str(), "%u.%u.%u.%u", &parts[0], &parts[1], &parts[2], &parts[3]);
   return (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
 }
 

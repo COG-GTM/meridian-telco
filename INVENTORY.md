@@ -37,7 +37,7 @@ Paths and defaults below are relative to the repository working directory.
 - CLI/files: `--devices network/devices.csv`; prints duplicate addresses, counts per /24, and usage within hard-coded reserved `10.20.250.0/24` of `10.20.0.0/16`.
 - DB/HTTP: none. Does not read `network/{reserved-ranges.conf,snmp-polling.conf,routing-tables/,firewall-rules/,dns-zones/}`; these are separate manually maintained artifacts.
 - Dependencies: standard library and `mediation/csv.h` only.
-- Modernized: from_chars/string_view IPv4 parsing, fixed-width integers, range loops and contains; fixed output formatting retained. Network/reservation remain hard-coded.
+- Modernized: string_view IPv4 input, fixed-width integers, range loops and contains; legacy sscanf parsing and fixed output formatting retained. Network/reservation remain hard-coded.
 
 ## Dashboard pages
 - `dashboard/index.html`: GET `http://localhost:8081/sites` and `/circuits`.
