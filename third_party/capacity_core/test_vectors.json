@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "rule": {
+    "available_mbps": "max(total_mbps - allocated_mbps - maintenance_buffer_mbps, 0)",
+    "utilization_pct": "(allocated_mbps + maintenance_buffer_mbps) * 100 / total_mbps, rounded to 2 decimals half to even on the exact value; 0 when total_mbps <= 0",
+    "can_support": "requested_mbps <= available_mbps"
+  },
+  "cases": [
+    {
+      "name": "vantage_reference_riv01",
+      "total_mbps": 1000,
+      "allocated_mbps": 600,
+      "maintenance_buffer_mbps": 150,
+      "requested_mbps": 250,
+      "expect_available_mbps": 250,
+      "expect_utilization_pct": 75.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "legacy_row_without_buffer",
+      "total_mbps": 1000,
+      "allocated_mbps": 600,
+      "maintenance_buffer_mbps": 0,
+      "requested_mbps": 400,
+      "expect_available_mbps": 400,
+      "expect_utilization_pct": 60.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "buffer_only",
+      "total_mbps": 1000,
+      "allocated_mbps": 0,
+      "maintenance_buffer_mbps": 150,
+      "requested_mbps": 850,
+      "expect_available_mbps": 850,
+      "expect_utilization_pct": 15.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "requested_one_over_available",
+      "total_mbps": 1000,
+      "allocated_mbps": 600,
+      "maintenance_buffer_mbps": 150,
+      "requested_mbps": 251,
+      "expect_available_mbps": 250,
+      "expect_utilization_pct": 75.0,
+      "expect_can_support": false
+    },
+    {
+      "name": "over_allocated_clamps_to_zero",
+      "total_mbps": 100,
+      "allocated_mbps": 90,
+      "maintenance_buffer_mbps": 50,
+      "requested_mbps": 0,
+      "expect_available_mbps": 0,
+      "expect_utilization_pct": 140.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "over_allocated_rejects_any_request",
+      "total_mbps": 100,
+      "allocated_mbps": 90,
+      "maintenance_buffer_mbps": 50,
+      "requested_mbps": 1,
+      "expect_available_mbps": 0,
+      "expect_utilization_pct": 140.0,
+      "expect_can_support": false
+    },
+    {
+      "name": "fully_reserved",
+      "total_mbps": 2000,
+      "allocated_mbps": 1500,
+      "maintenance_buffer_mbps": 500,
+      "requested_mbps": 0,
+      "expect_available_mbps": 0,
+      "expect_utilization_pct": 100.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "zero_total",
+      "total_mbps": 0,
+      "allocated_mbps": 0,
+      "maintenance_buffer_mbps": 0,
+      "requested_mbps": 0,
+      "expect_available_mbps": 0,
+      "expect_utilization_pct": 0.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "zero_total_with_allocation",
+      "total_mbps": 0,
+      "allocated_mbps": 50,
+      "maintenance_buffer_mbps": 10,
+      "requested_mbps": 1,
+      "expect_available_mbps": 0,
+      "expect_utilization_pct": 0.0,
+      "expect_can_support": false
+    },
+    {
+      "name": "negative_total",
+      "total_mbps": -100,
+      "allocated_mbps": 0,
+      "maintenance_buffer_mbps": 0,
+      "requested_mbps": 0,
+      "expect_available_mbps": 0,
+      "expect_utilization_pct": 0.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "repeating_third_rounds_down",
+      "total_mbps": 3,
+      "allocated_mbps": 1,
+      "maintenance_buffer_mbps": 0,
+      "requested_mbps": 0,
+      "expect_available_mbps": 2,
+      "expect_utilization_pct": 33.33,
+      "expect_can_support": true
+    },
+    {
+      "name": "repeating_two_thirds_rounds_up",
+      "total_mbps": 3,
+      "allocated_mbps": 2,
+      "maintenance_buffer_mbps": 0,
+      "requested_mbps": 1,
+      "expect_available_mbps": 1,
+      "expect_utilization_pct": 66.67,
+      "expect_can_support": true
+    },
+    {
+      "name": "buffer_drives_rounding",
+      "total_mbps": 7,
+      "allocated_mbps": 1,
+      "maintenance_buffer_mbps": 1,
+      "requested_mbps": 5,
+      "expect_available_mbps": 5,
+      "expect_utilization_pct": 28.57,
+      "expect_can_support": true
+    },
+    {
+      "name": "exact_tie_rounds_half_even_down",
+      "total_mbps": 800,
+      "allocated_mbps": 90,
+      "maintenance_buffer_mbps": 7,
+      "requested_mbps": 0,
+      "expect_available_mbps": 703,
+      "expect_utilization_pct": 12.12,
+      "expect_can_support": true
+    },
+    {
+      "name": "exact_tie_rounds_half_even_up",
+      "total_mbps": 800,
+      "allocated_mbps": 92,
+      "maintenance_buffer_mbps": 7,
+      "requested_mbps": 0,
+      "expect_available_mbps": 701,
+      "expect_utilization_pct": 12.38,
+      "expect_can_support": true
+    },
+    {
+      "name": "decimal_tie_even_stays",
+      "total_mbps": 4000,
+      "allocated_mbps": 1,
+      "maintenance_buffer_mbps": 0,
+      "requested_mbps": 0,
+      "expect_available_mbps": 3999,
+      "expect_utilization_pct": 0.02,
+      "expect_can_support": true
+    },
+    {
+      "name": "decimal_tie_odd_rounds_up",
+      "total_mbps": 4000,
+      "allocated_mbps": 3,
+      "maintenance_buffer_mbps": 0,
+      "requested_mbps": 0,
+      "expect_available_mbps": 3997,
+      "expect_utilization_pct": 0.08,
+      "expect_can_support": true
+    },
+    {
+      "name": "large_site",
+      "total_mbps": 100000,
+      "allocated_mbps": 64000,
+      "maintenance_buffer_mbps": 8000,
+      "requested_mbps": 28000,
+      "expect_available_mbps": 28000,
+      "expect_utilization_pct": 72.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "dunmore_dnm05",
+      "total_mbps": 10000,
+      "allocated_mbps": 6400,
+      "maintenance_buffer_mbps": 800,
+      "requested_mbps": 2800,
+      "expect_available_mbps": 2800,
+      "expect_utilization_pct": 72.0,
+      "expect_can_support": true
+    },
+    {
+      "name": "chicago_chi20",
+      "total_mbps": 4000,
+      "allocated_mbps": 2200,
+      "maintenance_buffer_mbps": 400,
+      "requested_mbps": 1500,
+      "expect_available_mbps": 1400,
+      "expect_utilization_pct": 65.0,
+      "expect_can_support": false
+    },
+    {
+      "name": "non_round_inputs",
+      "total_mbps": 1234,
+      "allocated_mbps": 567,
+      "maintenance_buffer_mbps": 89,
+      "requested_mbps": 578,
+      "expect_available_mbps": 578,
+      "expect_utilization_pct": 53.16,
+      "expect_can_support": true
+    }
+  ]
+}

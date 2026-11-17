@@ -3,7 +3,7 @@ meridian oss
 
 build:  make
 run:    make run          (rebuilds meridian.db from data/)
-check:  make check        (billing rule checks, bin/billing-test)
+check:  make check        (billing rule checks + shared capacity vectors)
 reg:    make register     (invoice register for 2026-07)
 demo:   make demo         (invoice-api :8082 + dashboard pages on :8083)
 
@@ -13,6 +13,7 @@ binaries land in bin/
   inventory-api  :8081   /sites  /circuits  /capacity
   billing-run    monthly invoice register, --json for the reconciliation feed
   billing-test   billing rule checks
+  capacity-test  capacity rule against the shared capacity_core test vectors
   invoice-api    :8082   /invoices?acct=...&period=...
   ipam           management address report (10.20.0.0/16)
 
@@ -21,8 +22,25 @@ a browser with inventory-api and invoice-api running.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
 /capacity?requested=<mbps> and shows what is left at each customer location.
-available = total - allocated, we do not hold back a maintenance buffer.
 serviceable locations come from data/locations.csv.
+
+capacity rule (shared with vantage-telco via COG-GTM/telco-capacity-core):
+
+  AVAIL_CAP_MBPS  = max(TOTAL_CAP_MBPS - ALLOC_CAP_MBPS - MAINT_BUFFER_MBPS, 0)
+  UTILIZATION_PCT = (ALLOC_CAP_MBPS + MAINT_BUFFER_MBPS) * 100 / TOTAL_CAP_MBPS,
+                    2 decimals, 0 when TOTAL_CAP_MBPS <= 0
+  CAN_SUPPORT     = requested <= AVAIL_CAP_MBPS
+
+MAINT_BUFFER_MBPS is the capacity held back for maintenance windows. it is a
+column on data/sites.csv, data/circuits.csv and data/locations.csv and on the
+SITE and CIRCUIT tables. legacy drops without the column, or rows with it
+empty, load as 0, which is the old total - allocated answer.
+
+mediation/capacity.cpp delegates to third_party/capacity_core/capacity_core.h,
+vendored from telco-capacity-core with its test_vectors.json. make check runs
+bin/capacity-test over those vectors so meridian and vantage stay in step. to
+pick up a new release, copy include/*.h and test_vectors.json from that repo
+into third_party/capacity_core/ and run make check.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
 

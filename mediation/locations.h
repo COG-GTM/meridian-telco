@@ -13,12 +13,16 @@ struct Location {
   std::string market_cd;
   int total_cap_mbps;
   int alloc_cap_mbps;
+  int maint_buffer_mbps; /* MAINT_BUFFER_MBPS, 0 for legacy rows */
 };
 
 std::vector<Location> load_locations(const std::string &csv_path);
 
-/* mbps that can still be sold at this location */
+/* mbps that can still be sold at this location, after the maintenance buffer */
 int location_available_mbps(const Location &loc);
+
+/* percent of the location committed (allocated + maintenance buffer) */
+double location_utilization_pct(const Location &loc);
 
 /* can we sell the requested bandwidth here */
 bool location_can_support(const Location &loc, int requested_mbps);
