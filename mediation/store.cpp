@@ -51,7 +51,7 @@ std::string column_text(sqlite3_stmt *stmt, int column) {
 }
 
 void bind_text(sqlite3_stmt *stmt, int idx, std::string_view s) {
-  sqlite3_bind_text(stmt, idx, s.data(), static_cast<int>(s.size()), SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, idx, s.empty() ? "" : s.data(), static_cast<int>(s.size()), SQLITE_TRANSIENT);
 }
 
 /* coordinates were historically written as %f literals (6 decimals); bind the
