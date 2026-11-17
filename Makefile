@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O2 -Wall
+CXXFLAGS = -std=c++20 -O2 -Wall -pthread
 LDFLAGS = -lsqlite3
 BIN = bin
 
