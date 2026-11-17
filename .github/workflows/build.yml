@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
-      - run: make
+      - run: sudo apt-get update && sudo apt-get install -y cmake g++ libsqlite3-dev libgtest-dev
+      - run: cmake -S . -B build
+      - run: cmake --build build --parallel 2
+      - run: ctest --test-dir build --output-on-failure
       - run: ./bin/mediation --data data --db meridian.db
+      - run: cmake --build build --target register
