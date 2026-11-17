@@ -165,10 +165,24 @@ int main(int argc, char **argv) {
   g_locations = load_locations(locations_csv);
   fprintf(stderr, "loaded %d serviceable locations\n", static_cast<int>(g_locations.size()));
   httplib::Server server;
-  server.set_header_writer([](httplib::Stream &stream, httplib::Headers &headers) {
-    auto &buffer = static_cast<httplib::detail::BufferStream &>(stream);
-    auto &line = const_cast<std::string &>(buffer.get_buffer());
+  server.set_keep_alive_max_count(1);
+  server.set_header_writer([](httplib::Stream &stream, httplib::Headers &headers) -> ssize_t {
+    auto *buffer = dynamic_cast<httplib::detail::BufferStream *>(&stream);
+    if (!buffer) return -1;
+    auto line = buffer->get_buffer();
     if (line == "HTTP/1.1 404 Not Found\r\n") line = "HTTP/1.1 404 ERROR\r\n";
+    *buffer = httplib::detail::BufferStream{};
+    buffer->write(line.data(), line.size());
+    std::string output;
+    for (const auto name : {"Content-Type", "Access-Control-Allow-Origin",
+                            "Content-Length", "Connection"}) {
+      const auto range = headers.equal_range(name);
+      for (auto it = range.first; it != range.second; ++it) {
+        output += it->first + ": " + it->second + "\r\n";
+      }
+      headers.erase(name);
+    }
+    buffer->write(output.data(), output.size());
     return httplib::detail::write_headers(stream, headers);
   });
   server.new_task_queue = [] { return new httplib::ThreadPool(1); };

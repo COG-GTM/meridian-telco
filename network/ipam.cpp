@@ -39,7 +39,7 @@ std::uint32_t ip_to_u32(std::string_view ip) {
   return (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
 }
 
-std::string field(const Row &r, const std::string &key) {
+std::string device_field(const Row &r, const std::string &key) {
   auto it = r.find(key);
   return it == r.end() ? std::string{} : it->second;
 }
@@ -61,9 +61,9 @@ int main(int argc, char **argv) {
   std::set<std::string> seen;
   int dupes = 0, reserved = 0;
   for (const Row &r : rows) {
-    const std::string ip = field(r, "mgmt_ip");
+    const std::string ip = device_field(r, "mgmt_ip");
     if (seen.contains(ip)) {
-      std::printf("DUPLICATE %s %s\n", ip.c_str(), field(r, "device_name").c_str());
+      std::printf("DUPLICATE %s %s\n", ip.c_str(), device_field(r, "device_name").c_str());
       dupes++;
     }
     seen.insert(ip);

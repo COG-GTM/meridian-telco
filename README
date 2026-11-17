@@ -1,11 +1,11 @@
 meridian oss
 ============
 
-build:  make
-run:    make run          (rebuilds meridian.db from data/)
-check:  make check        (billing rule checks, bin/billing-test)
-reg:    make register     (invoice register for 2026-07)
-demo:   make demo         (invoice-api :8082 + dashboard pages on :8083)
+requires: CMake >=3.16, C++20 compiler, SQLite3, Threads, GoogleTest
+build/check: cmake -S . -B build && cmake --build build && ctest --test-dir build
+run:    cmake --build build --target run      (rebuilds meridian.db from data/)
+reg:    cmake --build build --target register (invoice register for 2026-07)
+demo:   cmake --build build --target demo     (invoice-api :8082 + dashboard pages on :8083)
 
 binaries land in bin/
 
@@ -20,7 +20,7 @@ dashboard/index.html and dashboard/billing.html are static pages, open them in
 a browser with inventory-api and invoice-api running.
 
 dashboard/capacity.html is the sales desk capacity check. it asks
-/capacity?requested=<mbps> and shows what is left at each customer location.
+/capacity and filters requested bandwidth locally to show each customer location.
 available = total - allocated, we do not hold back a maintenance buffer.
 serviceable locations come from data/locations.csv.
 
