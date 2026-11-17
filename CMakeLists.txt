@@ -49,8 +49,8 @@ target_link_libraries(ipam PRIVATE Threads::Threads)
 add_executable(billing-test billing/rules_test.cpp)
 target_link_libraries(billing-test PRIVATE billing_core GTest::gtest GTest::gtest_main)
 enable_testing()
-add_test(NAME billing-test COMMAND billing-test)
-set_tests_properties(billing-test PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+include(GoogleTest)
+gtest_discover_tests(billing-test WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(main_binaries mediation inventory-api billing-run invoice-api ipam)
 add_custom_target(run

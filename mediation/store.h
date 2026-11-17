@@ -14,13 +14,9 @@ struct SqliteCloser {
 struct SqliteFinalizer {
   void operator()(sqlite3_stmt *stmt) const noexcept { sqlite3_finalize(stmt); }
 };
-struct SqliteFreer {
-  void operator()(void *p) const noexcept { sqlite3_free(p); }
-};
 
 using SqliteDb = std::unique_ptr<sqlite3, SqliteCloser>;
 using SqliteStmt = std::unique_ptr<sqlite3_stmt, SqliteFinalizer>;
-using SqliteErrMsg = std::unique_ptr<char, SqliteFreer>;
 
 /* the local mediation store. one sqlite file, lives next to the binary. */
 class Store {
@@ -41,7 +37,7 @@ class Store {
   sqlite3 *handle() { return db_.get(); }
 
  private:
-  bool exec(const char *sql);
+  bool exec(const std::string &sql);
   SqliteStmt prepare(std::string_view sql);
   SqliteDb db_;
 };

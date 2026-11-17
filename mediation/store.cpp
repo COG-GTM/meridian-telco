@@ -15,8 +15,8 @@ bool Store::open(const std::string &path) {
 
 void Store::close() { db_.reset(); }
 
-bool Store::exec(const char *sql) {
-  return sqlite3_exec(db_.get(), sql, nullptr, nullptr, nullptr) == SQLITE_OK;
+bool Store::exec(const std::string &sql) {
+  return sqlite3_exec(db_.get(), sql.c_str(), nullptr, nullptr, nullptr) == SQLITE_OK;
 }
 
 SqliteStmt Store::prepare(std::string_view sql) {
@@ -26,7 +26,7 @@ SqliteStmt Store::prepare(std::string_view sql) {
 }
 
 void Store::create_schema() {
-  constexpr const char *ddl =
+  const std::string ddl =
       "DROP TABLE IF EXISTS SITE;"
       "DROP TABLE IF EXISTS CIRCUIT;"
       "CREATE TABLE SITE("
@@ -39,13 +39,16 @@ void Store::create_schema() {
       " A_ASSET_ID INTEGER, Z_ASSET_ID INTEGER,"
       " CAP_MBPS INTEGER, ALLOC_MBPS INTEGER,"
       " ROLE_CD INTEGER, STATUS_CD INTEGER);";
-  char *raw_err = nullptr;
-  const int rc = sqlite3_exec(db_.get(), ddl, nullptr, nullptr, &raw_err);
-  const SqliteErrMsg err(raw_err);
-  if (rc != SQLITE_OK) fprintf(stderr, "ddl failed: %s\n", err ? err.get() : "?");
+  if (!exec(ddl)) fprintf(stderr, "ddl failed: %s\n", sqlite3_errmsg(db_.get()));
 }
 
 namespace {
+
+std::string column_text(sqlite3_stmt *stmt, int column) {
+  const auto *text = sqlite3_column_text(stmt, column);
+  if (!text) return {};
+  return std::string(text, text + sqlite3_column_bytes(stmt, column));
+}
 
 void bind_text(sqlite3_stmt *stmt, int idx, std::string_view s) {
   sqlite3_bind_text(stmt, idx, s.data(), static_cast<int>(s.size()), SQLITE_TRANSIENT);
@@ -103,8 +106,6 @@ void Store::load_circuits(const std::vector<Row> &rows) {
   exec("COMMIT");
 }
 
-/* runs every statement in sql (like sqlite3_exec) and collects result rows;
-   NULL columns come back as empty strings */
 std::vector<Row> Store::query(const std::string &sql) {
   std::vector<Row> out;
   std::string_view rest = sql;
@@ -124,8 +125,7 @@ std::vector<Row> Store::query(const std::string &sql) {
       Row r;
       const int ncol = sqlite3_column_count(stmt.get());
       for (int i = 0; i < ncol; i++) {
-        const auto *text = reinterpret_cast<const char *>(sqlite3_column_text(stmt.get(), i));
-        r[sqlite3_column_name(stmt.get(), i)] = text ? text : "";
+        r[sqlite3_column_name(stmt.get(), i)] = column_text(stmt.get(), i);
       }
       out.push_back(std::move(r));
     }
