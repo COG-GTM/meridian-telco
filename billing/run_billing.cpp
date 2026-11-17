@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <string_view>
 #include "accounts.h"
 #include "invoice.h"
 #include "rating.h"
@@ -25,13 +26,13 @@ int main(int argc, char **argv) {
   std::string accts_dir = "billing/accounts";
   std::string usage_csv = "data/usage.csv";
   std::string period = "";
-  int as_json = 0;
+  bool as_json = false;
   for (int i = 1; i < argc; i++) {
-    std::string a = argv[i];
+    std::string_view a = argv[i];
     if (a == "--accounts" && i + 1 < argc) accts_dir = argv[++i];
     else if (a == "--usage" && i + 1 < argc) usage_csv = argv[++i];
     else if (a == "--period" && i + 1 < argc) period = argv[++i];
-    else if (a == "--json") as_json = 1;
+    else if (a == "--json") as_json = true;
   }
   std::vector<Account> accts = load_accounts(accts_dir);
   std::vector<UsageRec> usage = load_usage(usage_csv);
@@ -40,17 +41,17 @@ int main(int argc, char **argv) {
     printf("%-16s %-8s %-4s %12s %10s %12s %10s %12s\n", "ACCT_ID", "PERIOD", "PRV",
            "USAGE_MB", "OVER_GB", "SUBTOTAL", "TAX", "TOTAL");
   }
-  for (size_t i = 0; i < usage.size(); i++) {
-    UsageRec u = usage[i];
+  for (const auto &u : usage) {
     if (!period.empty() && u.period != period) continue;
-    Account a;
-    if (!find_account(accts, u.acct_id, &a)) {
+    const auto account = find_account(accts, u.acct_id);
+    if (!account) {
       if (!as_json) {
         printf("%-16s %-8s %-4s %12ld %10s %12s %10s %12s\n", u.acct_id.c_str(),
                u.period.c_str(), "-", u.usage_mb, "-", "-", "-", "NO ACCOUNT");
       }
       continue;
     }
+    const Account &a = account->get();
     Invoice inv = compute_invoice(a, u);
     grand += inv.total;
     if (as_json) {

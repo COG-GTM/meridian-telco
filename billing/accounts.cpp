@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <fstream>
 #include <cstdlib>
+#include <memory>
 
 /* account master. one flat record per account under billing/accounts/.
    there was a migration to the store planned. */
@@ -19,12 +20,12 @@ static Account parse_rec(const std::string &path) {
   a.susp_end = 0;
   a.prior_bal = 0.0;
   a.loyalty_pct = 0.0;
-  std::ifstream f(path.c_str());
+  std::ifstream f(path);
   std::string line;
   while (std::getline(f, line)) {
     size_t eq = line.find('=');
     if (eq == std::string::npos) continue;
-    std::string k = line.substr(0, eq);
+    std::string_view k(line.data(), eq);
     std::string v = line.substr(eq + 1);
     if (k == "ACCT_ID") a.acct_id = v;
     else if (k == "BILLING_REF") a.billing_ref = v;
@@ -51,31 +52,30 @@ static Account parse_rec(const std::string &path) {
 
 std::vector<Account> load_accounts(const std::string &dir) {
   std::vector<Account> out;
-  DIR *d = opendir(dir.c_str());
+  const auto close_dir = [](DIR *dir) { closedir(dir); };
+  std::unique_ptr<DIR, decltype(close_dir)> d(opendir(dir.c_str()), close_dir);
   if (!d) return out;
-  struct dirent *e;
-  while ((e = readdir(d)) != 0) {
+  while (const auto *e = readdir(d.get())) {
     std::string nm = e->d_name;
     if (nm.size() < 5) continue;
-    if (nm.substr(nm.size() - 4) != ".rec") continue;
+    if (!nm.ends_with(".rec")) continue;
     out.push_back(parse_rec(dir + "/" + nm));
   }
-  closedir(d);
   return out;
 }
 
-bool find_account(const std::vector<Account> &accts, const std::string &id, Account *out) {
-  for (size_t i = 0; i < accts.size(); i++) {
-    if (accts[i].acct_id == id) { *out = accts[i]; return true; }
+std::optional<std::reference_wrapper<const Account>> find_account(
+    const std::vector<Account> &accts, std::string_view id) {
+  for (const auto &account : accts) {
+    if (account.acct_id == id) return std::cref(account);
   }
-  return false;
+  return std::nullopt;
 }
 
 std::vector<UsageRec> load_usage(const std::string &csv_path) {
   std::vector<UsageRec> out;
   std::vector<Row> rows = read_csv(csv_path);
-  for (size_t i = 0; i < rows.size(); i++) {
-    Row r = rows[i];
+  for (auto &r : rows) {
     UsageRec u;
     u.acct_id = r["ACCT_ID"];
     u.period = r["PERIOD"];
