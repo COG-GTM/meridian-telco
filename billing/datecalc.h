@@ -2,6 +2,7 @@
 #define MERIDIAN_DATECALC_H
 
 #include <string>
+#include <string_view>
 #include <cstdlib>
 
 /* date helpers for the billing run. dates arrive as YYYY-MM-DD strings out of
@@ -14,23 +15,23 @@ struct BillDate {
   bool ok;
 };
 
-inline BillDate parse_date(const std::string &s) {
+inline BillDate parse_date(std::string_view s) {
   BillDate out;
   out.y = 0; out.m = 0; out.d = 0; out.ok = false;
   if (s.size() < 10) return out;
-  out.y = atoi(s.substr(0, 4).c_str());
-  out.m = atoi(s.substr(5, 2).c_str());
-  out.d = atoi(s.substr(8, 2).c_str());
+  out.y = atoi(std::string(s.substr(0, 4)).c_str());
+  out.m = atoi(std::string(s.substr(5, 2)).c_str());
+  out.d = atoi(std::string(s.substr(8, 2)).c_str());
   out.ok = out.y > 0 && out.m > 0 && out.d > 0;
   return out;
 }
 
-inline BillDate period_start(const std::string &period) {
+inline BillDate period_start(std::string_view period) {
   BillDate out;
   out.y = 0; out.m = 0; out.d = 1; out.ok = false;
   if (period.size() < 7) return out;
-  out.y = atoi(period.substr(0, 4).c_str());
-  out.m = atoi(period.substr(5, 2).c_str());
+  out.y = atoi(std::string(period.substr(0, 4)).c_str());
+  out.m = atoi(std::string(period.substr(5, 2)).c_str());
   out.ok = out.y > 0 && out.m > 0;
   return out;
 }

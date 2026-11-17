@@ -3,7 +3,9 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <optional>
+#include <functional>
+#include <string_view>
 
 struct Account {
   std::string acct_id;
@@ -28,7 +30,8 @@ struct Account {
 };
 
 std::vector<Account> load_accounts(const std::string &dir);
-bool find_account(const std::vector<Account> &accts, const std::string &id, Account *out);
+std::optional<std::reference_wrapper<const Account>> find_account(
+    const std::vector<Account> &accts, std::string_view id);
 
 struct UsageRec {
   std::string acct_id;

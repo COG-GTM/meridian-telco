@@ -26,7 +26,7 @@ $(BIN)/invoice-api: $(BILLING_OBJS) billing/invoice-api/main.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 $(BIN)/billing-test: $(BILLING_OBJS) billing/rules_test.o | $(BIN)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lgtest -lgtest_main -pthread
 
 $(BIN)/ipam: network/ipam.o | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $^

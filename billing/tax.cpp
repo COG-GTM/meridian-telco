@@ -11,7 +11,7 @@
    assessed on what the customer actually pays, so the loyalty discount comes off
    first. signed off 2010, do not change without a ticket. RS 2010-06 */
 
-static TaxRates make(double fed, double prov, const char *fed_label, const char *prov_label) {
+static TaxRates make(double fed, double prov, std::string_view fed_label, std::string_view prov_label) {
   TaxRates r;
   r.federal_pct = fed;
   r.provincial_pct = prov;
@@ -20,7 +20,7 @@ static TaxRates make(double fed, double prov, const char *fed_label, const char 
   return r;
 }
 
-TaxRates rates_for_province(const std::string &province) {
+TaxRates rates_for_province(std::string_view province) {
   if (province == "BC") return make(5.0, 7.0, "GST", "PST");
   if (province == "AB") return make(5.0, 0.0, "GST", "");
   if (province == "ON") return make(13.0, 0.0, "HST", "");
