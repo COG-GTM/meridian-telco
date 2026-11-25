@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /** The {@code account} table: billing's copy of the account master (billing/accounts/*.rec). */
 @Repository
@@ -39,6 +40,7 @@ public class AccountRepository {
     return jdbc.sql("SELECT count(*) FROM account").query(Long.class).single();
   }
 
+  @Transactional
   public void insertAll(Collection<Account> accounts, String sourceFile) {
     for (Account a : accounts) {
       jdbc.sql("INSERT INTO account (" + COLUMNS + ", source_file) VALUES "
