@@ -266,7 +266,7 @@ public final class LegacyDataMigration {
     List<String> lines = Files.readAllLines(path);
     List<Map<String, String>> out = new ArrayList<>();
     if (lines.isEmpty()) return out;
-    List<String> hdr = splitLine(lines.get(0));
+    List<String> hdr = splitLine(lines.get(0).startsWith("\uFEFF") ? lines.get(0).substring(1) : lines.get(0));
     for (String line : lines.subList(1, lines.size())) {
       if (line.isEmpty()) continue;
       List<String> v = splitLine(line);
@@ -294,6 +294,8 @@ public final class LegacyDataMigration {
   // ---------------------------------------------------------------- network config files
 
   private void loadNetwork(Path dir, Connection dst) throws SQLException, IOException {
+    List<Map<String, String>> devices = readCsv(dir.resolve("devices.csv"));
+    if (devices.isEmpty()) throw new IOException(dir.resolve("devices.csv") + " has no devices; network store left unchanged");
     dst.setAutoCommit(false);
     try (Statement st = dst.createStatement()) {
       st.execute("TRUNCATE device, reserved_range, snmp_target");
@@ -301,7 +303,7 @@ public final class LegacyDataMigration {
     int n = 0;
     try (PreparedStatement ps = dst.prepareStatement("INSERT INTO device (seq, device_name, region, role, "
         + "mgmt_ip, site_cd, external_bgp) VALUES (?,?,?,?,?,?,?)")) {
-      for (Map<String, String> v : readCsv(dir.resolve("devices.csv"))) {
+      for (Map<String, String> v : devices) {
         ps.setInt(1, ++n);
         ps.setString(2, v.getOrDefault("device_name", ""));
         ps.setString(3, v.getOrDefault("region", ""));
