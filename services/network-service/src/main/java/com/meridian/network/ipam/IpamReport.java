@@ -97,13 +97,19 @@ public final class IpamReport {
       long n = 0;
       boolean overflow = false;
       while (pos < ip.length() && ip.charAt(pos) >= '0' && ip.charAt(pos) <= '9') {
-        n = n * 10 + (ip.charAt(pos) - '0');
-        if (n > 0xFFFFFFFFL) overflow = true;
+        int digit = ip.charAt(pos) - '0';
+        if (!overflow) {
+          long hi = Math.unsignedMultiplyHigh(n, 10L);
+          long next = n * 10 + digit;
+          if (hi != 0 || Long.compareUnsigned(next, n * 10) < 0) overflow = true;
+          else n = next;
+        }
         pos++;
       }
       if (pos == start) break;
-      long u = overflow ? 0xFFFFFFFFL : n;
-      v[i] = (int) (negative ? -u : u);
+      // glibc converts %u with strtoul (64-bit unsigned long, saturating) and narrows to unsigned int
+      long u = overflow ? -1L : (negative ? -n : n);
+      v[i] = (int) u;
     }
     return (v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3];
   }

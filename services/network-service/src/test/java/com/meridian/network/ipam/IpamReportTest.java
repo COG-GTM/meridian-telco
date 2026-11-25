@@ -48,6 +48,19 @@ class IpamReportTest {
     assertThat((IpamReport.legacyIpToU32("10.20.300.1") >>> 8) & 0xff).isEqualTo(44);
   }
 
+  /** Expected values printed by ipam.cpp's ip_to_u32 compiled with g++ on x86_64 Linux (glibc). */
+  @Test
+  void oversizedOctetsNarrowLikeGlibcStrtoul() {
+    assertThat(IpamReport.legacyIpToU32("10.20.250.4294967296")).isEqualTo((int) 169146880L);
+    assertThat(IpamReport.legacyIpToU32("10.20.250.-4294967296")).isEqualTo((int) 169146880L);
+    assertThat(IpamReport.legacyIpToU32("10.20.250.-1")).isEqualTo((int) 4294967295L);
+    assertThat(IpamReport.legacyIpToU32("10.20.250.18446744073709551615")).isEqualTo((int) 4294967295L);
+    assertThat(IpamReport.legacyIpToU32("10.20.250.99999999999999999999999")).isEqualTo((int) 4294967295L);
+    assertThat(IpamReport.legacyIpToU32("10.20.250.-99999999999999999999999")).isEqualTo((int) 4294967295L);
+    assertThat(IpamReport.legacyIpToU32("10.20.4294967546.1")).isEqualTo((int) 169146881L);
+    assertThat(IpamReport.legacyIpToU32(" 10.20.1.2")).isEqualTo((int) 169083138L);
+  }
+
   @Test
   void missingOrEmptyDeviceFileFailsLikeLegacy(@TempDir Path tmp) throws IOException {
     assertThatThrownBy(() -> IpamReport.legacyText(tmp.resolve("absent.csv")))
