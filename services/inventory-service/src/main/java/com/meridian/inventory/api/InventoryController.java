@@ -12,6 +12,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,8 +30,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class InventoryController {
 
-  /** A legacy STATUS_CD value that SQLite would have read as a numeric literal. */
-  private static final Pattern NUMERIC = Pattern.compile("\\s*[+-]?(\\d+\\.?\\d*|\\.\\d+)\\s*");
+  /** Signed SQLite numeric literals (decimal, exponent, hex); possessive so matching is linear. */
+  private static final Pattern DECIMAL = Pattern.compile("[+-]?+(?:\\d++(?:\\.\\d*+)?+|\\.\\d++)(?:[eE][+-]?+\\d++)?+");
+  private static final Pattern HEX = Pattern.compile("([+-]?+)0[xX]([0-9a-fA-F]++)");
 
   private final InventoryStore store;
   private final CapacityRule capacity;
@@ -46,9 +49,9 @@ public class InventoryController {
     if (q.containsKey("REGION_CD")) {
       rows = store.sitesInRegion(q.get("REGION_CD"));
     } else if (q.containsKey("STATUS_CD")) {
-      String v = q.get("STATUS_CD");
       // legacy spliced the value into the SQL; anything that is not a number failed the query
-      rows = NUMERIC.matcher(v).matches() ? store.sitesWithStatus(new BigDecimal(v.strip())) : List.of();
+      Optional<BigDecimal> status = sqliteNumber(q.get("STATUS_CD"));
+      rows = status.isPresent() ? store.sitesWithStatus(status.get()) : List.of();
     } else {
       rows = store.sites();
     }
@@ -122,6 +125,23 @@ public class InventoryController {
           .append('}');
     }
     return json(HttpStatus.OK, out.append("]}").toString());
+  }
+
+  /** The value of STATUS_CD=&lt;v&gt; as SQLite evaluated it, if it was a numeric literal. */
+  static Optional<BigDecimal> sqliteNumber(String v) {
+    Matcher hex = HEX.matcher(v);
+    if (hex.matches()) {
+      String digits = hex.group(2).replaceFirst("^0++", "");
+      if (digits.length() > 16) return Optional.empty(); // SQLite: hex literal too big
+      long n = digits.isEmpty() ? 0 : Long.parseUnsignedLong(digits, 16);
+      return Optional.of(BigDecimal.valueOf("-".equals(hex.group(1)) ? -n : n));
+    }
+    if (!DECIMAL.matcher(v).matches()) return Optional.empty();
+    try {
+      return Optional.of(new BigDecimal(v));
+    } catch (NumberFormatException | ArithmeticException e) {
+      return Optional.empty(); // exponent out of range: SQLite reads it as +-Inf, no match
+    }
   }
 
   /** Every other path: httpd.h answers 404 {"error":"not found"}. */

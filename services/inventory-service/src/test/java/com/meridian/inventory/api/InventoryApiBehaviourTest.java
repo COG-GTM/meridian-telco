@@ -43,6 +43,19 @@ class InventoryApiBehaviourTest {
   }
 
   @Test
+  void statusFilterTakesAnySqliteNumericLiteral() {
+    String active = http.getForEntity("/sites?STATUS_CD=1", String.class).getBody();
+    for (String v : new String[] {"1e0", "+1", "1.0", "0x1", ".1e1", "0X001"}) {
+      assertThat(http.getForEntity("/sites?STATUS_CD=" + v, String.class).getBody()).as(v).isEqualTo(active);
+    }
+    assertThat(http.getForEntity("/sites?STATUS_CD=1.5", String.class).getBody()).isEqualTo("{\"count\":0,\"sites\":[]}");
+    assertThat(http.getForEntity("/sites?STATUS_CD=0x" + "f".repeat(17), String.class).getBody())
+        .isEqualTo("{\"count\":0,\"sites\":[]}");
+    assertThat(http.getForEntity("/sites?STATUS_CD=1e99999999999", String.class).getBody())
+        .isEqualTo("{\"count\":0,\"sites\":[]}");
+  }
+
+  @Test
   void bodiesAreByteIdenticalToTheFrozenContracts() {
     for (HttpContract c : HttpContract.withPrefix("sites", "circuits", "capacity", "inventory-")) {
       assertThat(http.getForEntity(c.requestPath(), String.class).getBody()).as(c.name()).isEqualTo(c.body());
