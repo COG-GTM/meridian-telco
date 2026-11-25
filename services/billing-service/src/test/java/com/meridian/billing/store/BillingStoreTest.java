@@ -71,6 +71,16 @@ class BillingStoreTest {
     usage.upsert(new UsageRecorded("TEST-1", "2026-07", 300, "usage.csv", t0.plusSeconds(60)));
     assertThat(usage.findAll()).filteredOn(u -> u.acctId().equals("TEST-1"))
         .containsExactly(new UsageRecord("TEST-1", "2026-07", 300));
-    assertThat(usage.insertIfAbsent(new UsageRecord("TEST-1", "2026-07", 1), "file")).isZero();
+    assertThat(usage.seed(new UsageRecord("TEST-1", "2026-07", 1), "file")).isZero();
+  }
+
+  @Test
+  void reseedingACorrectedFileRefreshesFileRowsOnly() {
+    assertThat(usage.seed(new UsageRecord("TEST-2", "2026-07", 10), "file:usage.csv")).isEqualTo(1);
+    assertThat(usage.seed(new UsageRecord("TEST-2", "2026-07", 10), "file:usage.csv")).as("same file").isZero();
+    assertThat(usage.seed(new UsageRecord("TEST-2", "2026-07", 20), "file:usage.csv")).as("corrected").isEqualTo(1);
+    assertThat(usage.seed(new UsageRecord("TEST-2", "2026-07", 30), "file:other.csv")).as("other file").isZero();
+    assertThat(usage.findAll()).filteredOn(u -> u.acctId().equals("TEST-2"))
+        .containsExactly(new UsageRecord("TEST-2", "2026-07", 20));
   }
 }
