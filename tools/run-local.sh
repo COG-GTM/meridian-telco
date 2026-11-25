@@ -15,7 +15,11 @@ if [[ "${1:-}" == "stop" || "${1:-}" == "reset" ]]; then
 fi
 
 for p in "$RUN"/*.pid; do
-  [[ -f "$p" ]] && kill -0 "$(cat "$p")" 2>/dev/null && { echo "already running ($p); run '$0 stop' first"; exit 1; }
+  [[ -f "$p" ]] || continue
+  if ps -o args= -p "$(cat "$p")" 2>/dev/null | grep -qE 'java -jar|http\.server'; then
+    echo "already running ($p); run '$0 stop' first"; exit 1
+  fi
+  rm -f "$p"
 done
 
 docker compose -f ops/compose.yaml up -d --wait

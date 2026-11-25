@@ -101,6 +101,13 @@ class LegacyDataMigrationTest {
   }
 
   @Test
+  void csvHeaderBomIsIgnored(@org.junit.jupiter.api.io.TempDir Path dir) throws Exception {
+    Path f = dir.resolve("devices.csv");
+    java.nio.file.Files.writeString(f, "\uFEFFdevice_name,mgmt_ip\nedge1,10.20.1.1\n");
+    assertThat(LegacyDataMigration.readCsv(f)).containsExactly(java.util.Map.of("device_name", "edge1", "mgmt_ip", "10.20.1.1"));
+  }
+
+  @Test
   void flatFilesParseLikeTheLegacyReaders() {
     assertThat(LegacyDataMigration.splitLine("\"edge, east\",NE,10.20.1.1")).containsExactly("edge, east", "NE", "10.20.1.1");
     assertThat(Atof.decimal("1.5e3", "0")).isEqualByComparingTo("1500");

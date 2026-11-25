@@ -136,12 +136,17 @@ public final class LegacyDataMigration {
         .equals(digest(dst, "SELECT " + colList.toLowerCase(Locale.ROOT) + " FROM " + dstTable + " ORDER BY " + orderBy.toLowerCase(Locale.ROOT))));
   }
 
-  /** SHA-256 over every value rendered as text; numbers are normalized so 1 and 1.0 agree. */
+  /**
+   * SHA-256 over every row rendered as text, rows sorted in Java so SQLite and PostgreSQL collation
+   * differences cannot cause a false mismatch; numbers are normalized so 1 and 1.0 agree.
+   */
   static String digest(Connection c, String sql) throws SQLException {
     try (Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
       MessageDigest md = MessageDigest.getInstance("SHA-256");
       int n = rs.getMetaData().getColumnCount();
+      List<String> rendered = new ArrayList<>();
       while (rs.next()) {
+        StringBuilder row = new StringBuilder();
         for (int i = 1; i <= n; i++) {
           Object v = rs.getObject(i);
           String s = switch (v) {
@@ -149,9 +154,13 @@ public final class LegacyDataMigration {
             case Number num -> new BigDecimal(num.toString()).stripTrailingZeros().toPlainString();
             default -> v.toString();
           };
-          md.update(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-          md.update((byte) 0x1f);
+          row.append(s).append('\u001f');
         }
+        rendered.add(row.toString());
+      }
+      rendered.sort(null);
+      for (String row : rendered) {
+        md.update(row.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         md.update((byte) 0x1e);
       }
       return HexFormat.of().formatHex(md.digest());
@@ -227,13 +236,18 @@ public final class LegacyDataMigration {
 
   /**
    * data/usage.csv into billing's usage_record, so billing has the period's usage before the Kafka feed runs.
-   * Like the SeedLoader, a row already delivered by the feed is never overwritten.
+   * A repeated account/period keeps the last row (a correction, as on the feed); a row already
+   * delivered by the feed is never overwritten. A missing file fails verification.
    */
   private void loadUsage(Path csv, Connection dst) throws SQLException, IOException {
-    if (!Files.isRegularFile(csv)) return;
+    if (!Files.isRegularFile(csv)) {
+      rows.put("usage_record", 0);
+      verified.put("usage_record", false);
+      return;
+    }
     Map<String, Long> want = new LinkedHashMap<>();
     for (Map<String, String> r : readCsv(csv)) {
-      want.putIfAbsent(r.get("ACCT_ID") + "|" + r.get("PERIOD"), Atof.integer(r.get("USAGE_MB"), 0));
+      want.put(r.get("ACCT_ID") + "|" + r.get("PERIOD"), Atof.integer(r.get("USAGE_MB"), 0));
     }
     try (PreparedStatement ps = dst.prepareStatement("INSERT INTO usage_record (acct_id, period, seq, usage_mb, "
         + "source) VALUES (?, ?, nextval('usage_record_seq'), ?, ?) ON CONFLICT (acct_id, period) DO NOTHING")) {
@@ -261,7 +275,7 @@ public final class LegacyDataMigration {
     List<String> lines = Files.readAllLines(path);
     List<Map<String, String>> out = new ArrayList<>();
     if (lines.isEmpty()) return out;
-    List<String> hdr = splitLine(lines.get(0));
+    List<String> hdr = splitLine(lines.get(0).startsWith("\uFEFF") ? lines.get(0).substring(1) : lines.get(0));
     for (String line : lines.subList(1, lines.size())) {
       if (line.isEmpty()) continue;
       List<String> v = splitLine(line);
@@ -289,6 +303,8 @@ public final class LegacyDataMigration {
   // ---------------------------------------------------------------- network config files
 
   private void loadNetwork(Path dir, Connection dst) throws SQLException, IOException {
+    List<Map<String, String>> devices = readCsv(dir.resolve("devices.csv"));
+    if (devices.isEmpty()) throw new IOException(dir.resolve("devices.csv") + " has no devices; network store left unchanged");
     dst.setAutoCommit(false);
     try (Statement st = dst.createStatement()) {
       st.execute("TRUNCATE device, reserved_range, snmp_target");
@@ -296,7 +312,7 @@ public final class LegacyDataMigration {
     int n = 0;
     try (PreparedStatement ps = dst.prepareStatement("INSERT INTO device (seq, device_name, region, role, "
         + "mgmt_ip, site_cd, external_bgp) VALUES (?,?,?,?,?,?,?)")) {
-      for (Map<String, String> v : readCsv(dir.resolve("devices.csv"))) {
+      for (Map<String, String> v : devices) {
         ps.setInt(1, ++n);
         ps.setString(2, v.getOrDefault("device_name", ""));
         ps.setString(3, v.getOrDefault("region", ""));
