@@ -48,7 +48,10 @@ class UsageFeedKafkaTest {
       }
     }
     assertThat(got).hasSize(400);
-    ConsumerRecord<String, UsageRecorded> first = got.get(0);
+    assertThat(got).extracting(ConsumerRecord::key).doesNotHaveDuplicates();
+    // meridian.usage.v1 has several partitions, so consume order is not file order
+    ConsumerRecord<String, UsageRecorded> first =
+        got.stream().filter(r -> r.key().equals("BEACON-004417|2026-06")).findFirst().orElseThrow();
     assertThat(first.key()).isEqualTo("BEACON-004417|2026-06").isEqualTo(first.value().key());
     assertThat(first.value().usageMb()).isEqualTo(5813259L);
     assertThat(first.value().source()).isEqualTo(IngestService.USAGE_SOURCE);
