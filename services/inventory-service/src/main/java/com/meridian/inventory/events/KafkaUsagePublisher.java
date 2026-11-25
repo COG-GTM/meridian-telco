@@ -31,11 +31,12 @@ public class KafkaUsagePublisher implements UsagePublisher {
     for (UsageRecorded r : records) {
       sent.add(kafka.send(Topics.USAGE_V1, r.key(), r));
     }
-    kafka.flush();
+    // one deadline for the whole batch; the producer sends on its own linger, no blocking flush()
+    long deadline = System.nanoTime() + ackTimeout.toNanos();
     List<UsageRecorded> acked = new ArrayList<>(records.size());
     for (int i = 0; i < sent.size(); i++) {
       try {
-        sent.get(i).get(ackTimeout.toMillis(), TimeUnit.MILLISECONDS);
+        sent.get(i).get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
         acked.add(records.get(i));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
