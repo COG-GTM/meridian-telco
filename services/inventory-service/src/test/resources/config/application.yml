@@ -1,0 +1,5 @@
+# Tests ingest the checked-in drop at startup; Postgres comes from TestPostgres (Testcontainers).
+meridian:
+  data-dir: ${meridian.root}/data
+  ingest:
+    on-startup: true

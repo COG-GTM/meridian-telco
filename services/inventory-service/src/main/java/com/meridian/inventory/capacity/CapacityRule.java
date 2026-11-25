@@ -10,14 +10,15 @@ import org.springframework.stereotype.Component;
 public class CapacityRule {
 
   public int available(int totalMbps, int allocatedMbps) {
-    throw new UnsupportedOperationException("Phase 2");
+    return Math.max(totalMbps - allocatedMbps, 0);
   }
 
   public int utilizationPct(int totalMbps, int allocatedMbps) {
-    throw new UnsupportedOperationException("Phase 2");
+    if (totalMbps <= 0) return 0;
+    return (allocatedMbps * 100) / totalMbps;
   }
 
   public boolean canSupport(int totalMbps, int allocatedMbps, int requestedMbps) {
-    throw new UnsupportedOperationException("Phase 2");
+    return available(totalMbps, allocatedMbps) >= requestedMbps;
   }
 }
