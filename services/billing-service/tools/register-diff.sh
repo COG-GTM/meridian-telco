@@ -4,9 +4,10 @@
 #
 #   services/billing-service/tools/register-diff.sh 2026-07 [--usage FILE] [--accounts DIR]
 #
-# Builds bin/billing-run (make) and the billing-service jar (mvn package) when missing or stale.
+# Rebuilds bin/billing-run (make) and the billing-service jar (mvn package) when stale.
 # Exit status: 0 when both registers are identical, 1 on any difference.
 set -euo pipefail
+umask 077  # the registers hold customer names and charges
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 MODULE="$ROOT/services/billing-service"
@@ -17,7 +18,7 @@ OUT="${REGISTER_DIFF_OUT:-$MODULE/target/register-diff}"
 mkdir -p "$OUT"
 cd "$ROOT"
 
-[[ -x bin/billing-run ]] || make -s bin/billing-run
+make -s bin/billing-run
 JAR="$(ls "$MODULE"/target/billing-service-*.jar 2>/dev/null | grep -v '\.original$' | head -1 || true)"
 if [[ -z "$JAR" || -n "$(find "$MODULE/src/main" "$MODULE/pom.xml" -newer "$JAR" -type f | head -1)" ]]; then
   mvn -B -q -ntp ${MAVEN_ARGS:-} -pl services/billing-service -am -DskipTests package
