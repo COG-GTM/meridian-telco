@@ -13,12 +13,18 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 MODULE="$ROOT/services/billing-service"
 PERIOD="${1:?usage: register-diff.sh PERIOD [--usage FILE] [--accounts DIR]}"
 shift
-EXTRA=("$@")
-OUT="${REGISTER_DIFF_OUT:-$MODULE/target/register-diff}"
+EXTRA=()
+while (($#)); do
+  case "$1" in
+    --usage|--accounts) EXTRA+=("$1" "$(realpath -m "${2:?$1 needs a value}")"); shift 2 ;;
+    *) EXTRA+=("$1"); shift ;;
+  esac
+done
+OUT="$(realpath -m "${REGISTER_DIFF_OUT:-$MODULE/target/register-diff}")"
 mkdir -p "$OUT"
 cd "$ROOT"
 
-make -s bin/billing-run
+make -s -B bin/billing-run  # -B: the Makefile does not track header dependencies
 JAR="$(ls "$MODULE"/target/billing-service-*.jar 2>/dev/null | grep -v '\.original$' | head -1 || true)"
 if [[ -z "$JAR" || -n "$(find "$MODULE/src/main" "$MODULE/pom.xml" -newer "$JAR" -type f | head -1)" ]]; then
   mvn -B -q -ntp ${MAVEN_ARGS:-} -pl services/billing-service -am -DskipTests package
