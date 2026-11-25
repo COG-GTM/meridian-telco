@@ -33,10 +33,10 @@ wait_http() {
 echo "== legacy: make + bin/mediation + bin/inventory-api"
 make -s bin/mediation bin/inventory-api >/dev/null
 ./bin/mediation --data "$DATA" --db "$WORK/meridian.db" > "$WORK/legacy-mediation.txt"
-./bin/inventory-api --db "$WORK/meridian.db" --port "$LEGACY_PORT" 2>/dev/null & PIDS+=($!)
+./bin/inventory-api --db "$WORK/meridian.db" --locations "$DATA/locations.csv" --port "$LEGACY_PORT" 2>/dev/null & PIDS+=($!)
 
 echo "== new: Postgres ($POSTGRES_IMAGE) + inventory-service"
-docker run -d --rm --name "$PG_NAME" -p "$PG_PORT:5432" -e POSTGRES_DB=inventory \
+docker run -d --rm --name "$PG_NAME" -p "127.0.0.1:$PG_PORT:5432" -e POSTGRES_DB=inventory \
   -e POSTGRES_USER=inventory -e POSTGRES_PASSWORD=inventory "$POSTGRES_IMAGE" >/dev/null
 for _ in $(seq 100); do docker exec "$PG_NAME" pg_isready -q -U inventory -d inventory && break; sleep 0.3; done
 if [[ "${SKIP_BUILD:-}" != 1 ]]; then
@@ -47,7 +47,7 @@ INVENTORY_DB_URL="jdbc:postgresql://127.0.0.1:$PG_PORT/inventory" MERIDIAN_DATA_
   MERIDIAN_INGEST_ON_STARTUP=true java -jar "$JAR" --server.port="$NEW_PORT" > "$WORK/service.log" 2>&1 & PIDS+=($!)
 wait_http "$LEGACY_PORT"
 wait_http "$NEW_PORT"
-# the startup ingest runs on ApplicationReadyEvent, after the port opens: wait for its ingest_run row
+# the startup ingest finishes before the port opens; this only guards against a failed run
 for _ in $(seq 300); do
   [[ $(docker exec "$PG_NAME" psql -qAt -U inventory -d inventory \
     -c "SELECT count(*) FROM ingest_run WHERE finished_at IS NOT NULL" 2>/dev/null || echo 0) -gt 0 ]] && break
@@ -73,6 +73,7 @@ fetch() { # port path out
 PATHS=()
 for req in contracts/http/{sites,circuits,capacity,inventory-}*.request; do PATHS+=("$(cat "$req")"); done
 PATHS+=("/sites?STATUS_CD=1" "/sites?STATUS_CD=2" "/sites?REGION_CD=NOPE" "/circuits?CIRCUIT_ID=NOPE"
+  "/sites?STATUS_CD=1e0" "/sites?STATUS_CD=+1" "/sites?STATUS_CD=0x3" "/sites?STATUS_CD=1.5"
   "/capacity?requested=0" "/capacity?requested=100000" "/capacity?market=NOPE" "/sites/x" "/")
 i=0
 for path in "${PATHS[@]}"; do
