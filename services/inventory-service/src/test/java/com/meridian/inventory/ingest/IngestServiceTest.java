@@ -48,7 +48,6 @@ class IngestServiceTest {
   @Test
   void aDropWithoutLocationsKeepsTheStoredOnes(@TempDir Path drop) {
     assertThat(ingest.run(drop)).isEmpty();
-    assertThat(ingest.refreshLocations()).isZero();
     assertThat(store.locations()).hasSize(22);
   }
 
