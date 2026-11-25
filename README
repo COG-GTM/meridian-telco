@@ -7,8 +7,8 @@ java 21 services (replacing the C++ binaries below; see MIGRATION_PROGRESS.md)
   run:     tools/run-local.sh          (Postgres + Kafka via ops/compose.yaml, the three
                                         services, dashboard on :8000; `stop` to tear down)
   parity:  tools/parity/http-diff.sh   (live services vs frozen contracts/http)
-           services/billing-service/tools/register-diff.sh 2026-07   (C++ vs Java register)
-           services/inventory-service/tools/parity.sh                (C++ vs Java inventory)
+           r=$(mktemp) && java -jar services/billing-service/target/billing-service-*[0-9T].jar \
+             billing-run --period 2026-07 --json > "$r" && cmp "$r" contracts/register/register-2026-07.jsonl
 
   inventory-service  :8081  /sites /circuits /capacity, scheduled ingest of data/,
                             publishes usage to Kafka topic meridian.usage.v1
@@ -18,43 +18,25 @@ java 21 services (replacing the C++ binaries below; see MIGRATION_PROGRESS.md)
   db-migration              one-shot split of meridian.db + billing/accounts + network/ into
                             the per-service PostgreSQL databases
 
-legacy C++ toolchain (fallback until decommission)
+the C++ binaries and Makefile were retired after parity; contracts/ keeps their frozen
+output and the golden tests hold the Java services to it.
 
-build:  make
-run:    make run          (rebuilds meridian.db from data/)
-check:  make check        (billing rule checks, bin/billing-test)
-reg:    make register     (invoice register for 2026-07)
-demo:   make demo         (invoice-api :8082 + dashboard pages on :8083)
-
-binaries land in bin/
-
-  mediation      nightly ingest, writes meridian.db
-  inventory-api  :8081   /sites  /circuits  /capacity
-  billing-run    monthly invoice register, --json for the reconciliation feed
-  billing-test   billing rule checks
-  invoice-api    :8082   /invoices?acct=...&period=...
-  ipam           management address report (10.20.0.0/16)
-
-dashboard/index.html and dashboard/billing.html are static pages, open them in
-a browser with inventory-api and invoice-api running.
-
-dashboard/capacity.html is the sales desk capacity check. it asks
-/capacity?requested=<mbps> and shows what is left at each customer location.
+dashboard/ pages read their API base URLs from dashboard/config.js (served on :8000 by
+tools/run-local.sh). dashboard/capacity.html is the sales desk capacity check:
 available = total - allocated, we do not hold back a maintenance buffer.
-serviceable locations come from data/locations.csv.
 
 data/ holds the telemetry drops. billing/accounts/ is the account master.
 
-billing rules, one file each, all of them go through billing/invoice.cpp:
+billing rules (services/billing-service/.../rules), composed by InvoiceComposer:
 
-  rating.cpp      whole gigabytes, partial gigs round up, $10 a gig over plan
-  proration.cpp   30 day billing month, mid cycle plan changes split on it
-  promo.cpp       promo credits expire at the end of the cycle they were issued
-  suspension.cpp  a suspended line is billed the full month, no credit
-  lines.cpp       3-9 lines 5% off recurring, 10+ lines 10%
-  latefee.cpp     10 day grace after the due date, then 1.5% of the balance
-  tax.cpp         GST/HST on the pre discount amount, PST/QST on what is paid
-  discounts.cpp   loyalty credit off the subtotal
+  RatingRule       whole gigabytes, partial gigs round up, $10 a gig over plan
+  ProrationRule    30 day billing month, mid cycle plan changes split on it
+  PromoRule        promo credits expire at the end of the cycle they were issued
+  SuspensionRule   a suspended line is billed the full month, no credit
+  LinesRule        3-9 lines 5% off recurring, 10+ lines 10%
+  LateFeeRule      10 day grace after the due date, then 1.5% of the balance
+  TaxRule          GST/HST on the pre discount amount, PST/QST on what is paid
+  DiscountsRule    loyalty credit off the subtotal
 
 the provinces we bill are BC, AB, ON and QC. the province is on the account
 record (PROVINCE=) and on the invoice register page.
