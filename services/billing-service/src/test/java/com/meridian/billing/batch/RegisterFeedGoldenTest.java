@@ -6,7 +6,6 @@ import com.meridian.contracts.testkit.MeridianRoot;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -15,7 +14,6 @@ import org.junit.jupiter.params.provider.CsvSource;
  * tools/parity consumes. Output must be byte-identical to contracts/register/* captured from
  * the C++ bin/billing-run (400 invoices: 200 accounts x 2026-06, 2026-07).
  */
-@Tag("pending")
 class RegisterFeedGoldenTest {
 
   static final Path ACCOUNTS = MeridianRoot.resolve("billing/accounts");

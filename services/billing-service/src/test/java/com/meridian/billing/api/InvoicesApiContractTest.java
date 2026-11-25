@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.meridian.contracts.testkit.ContractJson;
 import com.meridian.contracts.testkit.HttpContract;
 import java.util.List;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +16,6 @@ import org.springframework.http.ResponseEntity;
  * Frozen /invoices contract (legacy bin/invoice-api :8082), captured in contracts/http/invoices-*.
  * Same status, and a body with the same keys, key order and number literals.
  */
-@Tag("pending")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class InvoicesApiContractTest {
 

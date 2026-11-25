@@ -1,5 +1,6 @@
 package com.meridian.billing.rules;
 
+import com.meridian.billing.calc.Money;
 import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
 
@@ -8,10 +9,12 @@ import org.springframework.stereotype.Component;
 public class SuspensionRule {
 
   public int suspendedDays(int startDay, int endDay) {
-    throw new UnsupportedOperationException("Phase 3");
+    if (startDay <= 0 || endDay < startDay) return 0;
+    return endDay - startDay + 1;
   }
 
+  /** A suspended line keeps its number and provisioning, so there is never a partial credit. */
   public BigDecimal credit(BigDecimal monthlyFee, int startDay, int endDay) {
-    throw new UnsupportedOperationException("Phase 3");
+    return Money.ZERO;
   }
 }

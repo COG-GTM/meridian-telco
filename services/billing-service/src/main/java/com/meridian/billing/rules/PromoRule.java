@@ -1,5 +1,7 @@
 package com.meridian.billing.rules;
 
+import com.meridian.billing.calc.BillDate;
+import com.meridian.billing.calc.Money;
 import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
 
@@ -8,10 +10,15 @@ import org.springframework.stereotype.Component;
 public class PromoRule {
 
   public boolean isLive(String issuedOn, String period) {
-    throw new UnsupportedOperationException("Phase 3");
+    BillDate issued = BillDate.parseDate(issuedOn);
+    BillDate cycle = BillDate.periodStart(period);
+    if (!issued.ok() || !cycle.ok()) return false;
+    return issued.y() == cycle.y() && issued.m() == cycle.m();
   }
 
   public BigDecimal credit(BigDecimal amount, String issuedOn, String period) {
-    throw new UnsupportedOperationException("Phase 3");
+    if (amount.signum() <= 0) return Money.ZERO;
+    if (!isLive(issuedOn, period)) return Money.ZERO;
+    return Money.round(amount);
   }
 }
