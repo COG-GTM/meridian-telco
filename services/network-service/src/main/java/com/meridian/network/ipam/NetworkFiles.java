@@ -36,6 +36,7 @@ public final class NetworkFiles {
   public static List<Device> readDevices(Path csv) {
     List<Device> out = new ArrayList<>();
     try (Reader in = Files.newBufferedReader(csv, StandardCharsets.UTF_8)) {
+      skipByteOrderMark(in);
       int seq = 0;
       for (CSVRecord r : CSV.parse(in)) {
         out.add(new Device(++seq, col(r, "device_name"), col(r, "region"), col(r, "role"),
@@ -69,6 +70,11 @@ public final class NetworkFiles {
       }
     }
     return out;
+  }
+
+  private static void skipByteOrderMark(Reader in) throws IOException {
+    in.mark(1);
+    if (in.read() != '\uFEFF') in.reset();
   }
 
   private static String col(CSVRecord r, String name) {
