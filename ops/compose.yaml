@@ -5,7 +5,7 @@ services:
     image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     environment:
       POSTGRES_PASSWORD: postgres
-    ports: ["5432:5432"]
+    ports: ["127.0.0.1:5432:5432"]   # local dev only: loopback, dev credentials
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
@@ -15,7 +15,7 @@ services:
 
   kafka:
     image: ${KAFKA_IMAGE:-apache/kafka:3.9.1}
-    ports: ["9092:9092"]
+    ports: ["127.0.0.1:9092:9092"]   # local dev only: plaintext, no SASL; production needs TLS/SASL + ACLs
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller

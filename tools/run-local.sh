@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 # Runs the Java stack locally: Postgres (one DB per service) + Kafka, the three services and the dashboard.
 #   tools/run-local.sh          build, start everything, wait until healthy
-#   tools/run-local.sh stop     stop services and infra
+#   tools/run-local.sh stop     stop services and infra (data volumes kept)
+#   tools/run-local.sh reset    stop and delete the data volumes
 # Images can be overridden (POSTGRES_IMAGE, KAFKA_IMAGE), e.g. to use a registry mirror.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 RUN=.run; mkdir -p "$RUN"
 
-if [[ "${1:-}" == "stop" ]]; then
+if [[ "${1:-}" == "stop" || "${1:-}" == "reset" ]]; then
   for p in "$RUN"/*.pid; do [[ -f "$p" ]] && kill "$(cat "$p")" 2>/dev/null || true; rm -f "$p"; done
-  docker compose -f ops/compose.yaml down -v
+  docker compose -f ops/compose.yaml down $([[ "$1" == reset ]] && echo -v)
   exit 0
 fi
+
+for p in "$RUN"/*.pid; do
+  [[ -f "$p" ]] && kill -0 "$(cat "$p")" 2>/dev/null && { echo "already running ($p); run '$0 stop' first"; exit 1; }
+done
 
 docker compose -f ops/compose.yaml up -d --wait
 [[ "${SKIP_BUILD:-}" == 1 ]] || mvn -B -q -ntp package -DskipTests
