@@ -136,12 +136,17 @@ public final class LegacyDataMigration {
         .equals(digest(dst, "SELECT " + colList.toLowerCase(Locale.ROOT) + " FROM " + dstTable + " ORDER BY " + orderBy.toLowerCase(Locale.ROOT))));
   }
 
-  /** SHA-256 over every value rendered as text; numbers are normalized so 1 and 1.0 agree. */
+  /**
+   * SHA-256 over every row rendered as text, rows sorted in Java so SQLite and PostgreSQL collation
+   * differences cannot cause a false mismatch; numbers are normalized so 1 and 1.0 agree.
+   */
   static String digest(Connection c, String sql) throws SQLException {
     try (Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
       MessageDigest md = MessageDigest.getInstance("SHA-256");
       int n = rs.getMetaData().getColumnCount();
+      List<String> rendered = new ArrayList<>();
       while (rs.next()) {
+        StringBuilder row = new StringBuilder();
         for (int i = 1; i <= n; i++) {
           Object v = rs.getObject(i);
           String s = switch (v) {
@@ -149,9 +154,13 @@ public final class LegacyDataMigration {
             case Number num -> new BigDecimal(num.toString()).stripTrailingZeros().toPlainString();
             default -> v.toString();
           };
-          md.update(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-          md.update((byte) 0x1f);
+          row.append(s).append('\u001f');
         }
+        rendered.add(row.toString());
+      }
+      rendered.sort(null);
+      for (String row : rendered) {
+        md.update(row.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         md.update((byte) 0x1e);
       }
       return HexFormat.of().formatHex(md.digest());
