@@ -45,6 +45,7 @@ class UsageRecordedListenerTest {
     send(a);
     send(a);
     kafka.send(Topics.USAGE_V1, "bad", "{not json").get();
+    kafka.send(Topics.USAGE_V1, "TEST-K2|2026-08", "{\"acctId\":\"TEST-K2\",\"period\":\"2026-08\"}").get();
     send(new UsageRecorded("TEST-K2", "2026-08", 10, "usage.csv", t));
     send(new UsageRecorded("TEST-K1", "2026-08", 4096, "usage.csv", t.plusSeconds(5)));
 

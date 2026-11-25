@@ -1,6 +1,7 @@
 package com.meridian.billing.usage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meridian.billing.store.UsageRepository;
 import com.meridian.contracts.events.Topics;
@@ -36,16 +37,26 @@ public class UsageRecordedListener {
   public void onUsage(ConsumerRecord<String, String> rec) {
     UsageRecorded u;
     try {
-      u = json.readValue(rec.value(), UsageRecorded.class);
+      JsonNode node = json.readTree(rec.value());
+      JsonNode mb = node == null ? null : node.get("usageMb");
+      if (mb == null || !mb.isIntegralNumber()) {
+        skip(rec, "missing usageMb");
+        return;
+      }
+      u = json.treeToValue(node, UsageRecorded.class);
     } catch (JsonProcessingException e) {
-      log.warn("skipping unreadable {} record at offset {}: {}", rec.topic(), rec.offset(), e.getMessage());
+      skip(rec, "unreadable JSON");
       return;
     }
     if (u.acctId() == null || u.acctId().isBlank() || u.period() == null
         || !PERIOD.matcher(u.period()).matches() || u.usageMb() < 0) {
-      log.warn("skipping invalid {} record at offset {}: {}", rec.topic(), rec.offset(), u);
+      skip(rec, "invalid fields");
       return;
     }
     usage.upsert(u);
+  }
+
+  private static void skip(ConsumerRecord<String, String> rec, String why) {
+    log.warn("skipping {} record at partition {} offset {}: {}", rec.topic(), rec.partition(), rec.offset(), why);
   }
 }

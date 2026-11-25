@@ -63,8 +63,10 @@ class BillingStoreTest {
     var first = new UsageRecorded("TEST-1", "2026-07", 100, "usage.csv", t0);
     assertThat(usage.upsert(first)).isEqualTo(1);
     long before = usage.count();
-    usage.upsert(first);
+    assertThat(usage.upsert(first)).as("replay").isZero();
     assertThat(usage.count()).isEqualTo(before);
+    assertThat(usage.upsert(new UsageRecorded("TEST-1", "2026-07", 999, "usage.csv", null)))
+        .as("no timestamp").isZero();
     assertThat(usage.upsert(new UsageRecorded("TEST-1", "2026-07", 50, "usage.csv", t0.minusSeconds(60)))).isZero();
     usage.upsert(new UsageRecorded("TEST-1", "2026-07", 300, "usage.csv", t0.plusSeconds(60)));
     assertThat(usage.findAll()).filteredOn(u -> u.acctId().equals("TEST-1"))

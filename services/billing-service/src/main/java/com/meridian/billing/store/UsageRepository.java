@@ -30,7 +30,8 @@ public class UsageRepository {
 
   /**
    * Idempotent on (acct_id, period): a replay of the same record is a no-op, a later record for
-   * the key replaces the usage, an older (out of order) one is ignored. Returns rows changed.
+   * the key replaces the usage, an older (out of order) one, or one without a timestamp, never
+   * replaces a timestamped record. Returns rows changed.
    */
   public int upsert(UsageRecorded u) {
     return jdbc.sql("""
@@ -39,9 +40,10 @@ public class UsageRepository {
             ON CONFLICT (acct_id, period) DO UPDATE
                SET usage_mb = EXCLUDED.usage_mb, source = EXCLUDED.source,
                    recorded_at = EXCLUDED.recorded_at, received_at = now()
-             WHERE usage_record.recorded_at IS NULL
-                OR EXCLUDED.recorded_at IS NULL
-                OR EXCLUDED.recorded_at >= usage_record.recorded_at""")
+             WHERE (usage_record.recorded_at IS NULL
+                    OR EXCLUDED.recorded_at >= usage_record.recorded_at)
+               AND (usage_record.usage_mb, usage_record.recorded_at)
+                   IS DISTINCT FROM (EXCLUDED.usage_mb, EXCLUDED.recorded_at)""")
         .params(u.acctId(), u.period(), u.usageMb(), u.source(),
             u.recordedAt() == null ? null : Timestamp.from(u.recordedAt()))
         .update();
