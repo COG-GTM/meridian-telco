@@ -48,8 +48,8 @@ public final class BillingRun {
       try (ConfigurableApplicationContext ctx = new SpringApplicationBuilder(BillingServiceApplication.class)
           .web(WebApplicationType.NONE)
           .properties("spring.main.banner-mode=off", "spring.main.log-startup-info=false",
-              "logging.level.root=WARN", "meridian.kafka.enabled=false")
-          .run()) {
+              "logging.level.root=WARN")
+          .run("--meridian.kafka.enabled=false")) {
         text = ctx.getBean(RegisterJob.class).run(o.period(), o.json()).text();
       }
     } else {
