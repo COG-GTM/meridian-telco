@@ -7,8 +7,8 @@ java 21 services (replacing the C++ binaries below; see MIGRATION_PROGRESS.md)
   run:     tools/run-local.sh          (Postgres + Kafka via ops/compose.yaml, the three
                                         services, dashboard on :8000; `stop` to tear down)
   parity:  tools/parity/http-diff.sh   (live services vs frozen contracts/http)
-           services/billing-service/tools/register-diff.sh 2026-07   (C++ vs Java register)
-           services/inventory-service/tools/parity.sh                (C++ vs Java inventory)
+           java -jar services/billing-service/target/billing-service-*[0-9T].jar billing-run \
+             --period 2026-07 --json | cmp - contracts/register/register-2026-07.jsonl
 
   inventory-service  :8081  /sites /circuits /capacity, scheduled ingest of data/,
                             publishes usage to Kafka topic meridian.usage.v1
