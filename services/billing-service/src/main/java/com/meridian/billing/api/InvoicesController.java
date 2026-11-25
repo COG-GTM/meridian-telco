@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * {@code GET /invoices?acct=&period=} (billing/invoice-api/main.cpp). Every usage record with an
  * account master, in register order; 404 with an empty list when an account filter matches
- * nothing. The legacy router matched on path prefix and any method, so this does too.
+ * nothing. The legacy router matched on path prefix, any method and any Accept, so this does too.
  */
 @RestController
 public class InvoicesController {
@@ -34,10 +34,12 @@ public class InvoicesController {
     this.usage = usage;
   }
 
-  @RequestMapping(path = {"/invoices", "/invoices*", "/invoices/**", "/invoices*/**"}, produces = MediaType.APPLICATION_JSON_VALUE)
+  @RequestMapping(path = {"/invoices", "/invoices*", "/invoices/**", "/invoices*/**"})
   public ResponseEntity<InvoiceView.Page> invoices(
-      @RequestParam(name = "acct", defaultValue = "") String acct,
-      @RequestParam(name = "period", defaultValue = "") String period) {
+      @RequestParam(name = "acct", required = false) List<String> accts,
+      @RequestParam(name = "period", required = false) List<String> periods) {
+    String acct = last(accts);
+    String period = last(periods);
     Map<String, Account> byId = AccountsRule.index(accounts.findAll());
     List<InvoiceView> out = new ArrayList<>();
     for (UsageRecord u : usage.findAll()) {
@@ -49,5 +51,10 @@ public class InvoicesController {
     }
     HttpStatus status = out.isEmpty() && !acct.isEmpty() ? HttpStatus.NOT_FOUND : HttpStatus.OK;
     return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(new InvoiceView.Page(out));
+  }
+
+  /** httpd.h parse_target: a repeated query key keeps its last value. */
+  private static String last(List<String> values) {
+    return values == null || values.isEmpty() ? "" : values.getLast();
   }
 }
