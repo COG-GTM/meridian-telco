@@ -17,6 +17,13 @@ jobs:
           java-version: '21'
           cache: maven
       - run: mvn -B -ntp verify
+      - name: packaged billing-run vs frozen register
+        run: |
+          jar=$(ls services/billing-service/target/billing-service-*.jar | grep -v '\.original$')
+          for p in 2026-06 2026-07; do
+            java -jar "$jar" billing-run --period "$p" | cmp - "contracts/register/register-$p.txt"
+            java -jar "$jar" billing-run --period "$p" --json | cmp - "contracts/register/register-$p.jsonl"
+          done
       - if: always()
         uses: actions/upload-artifact@v4
         with:
