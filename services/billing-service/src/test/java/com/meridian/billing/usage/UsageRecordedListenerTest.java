@@ -35,7 +35,7 @@ class UsageRecordedListenerTest {
 
   @AfterEach
   void dropTestRows() {
-    jdbc.sql("DELETE FROM usage_record WHERE acct_id LIKE 'TEST-%'").update();
+    jdbc.sql("DELETE FROM usage_record WHERE acct_id LIKE 'TEST-%' OR acct_id LIKE '\\_TEST-%'").update();
   }
 
   @Test
@@ -54,11 +54,29 @@ class UsageRecordedListenerTest {
             new UsageRecord("TEST-K1", "2026-08", 4096), new UsageRecord("TEST-K2", "2026-08", 10)));
   }
 
+  @Test
+  void rejectsOnlyUnstorableRecordsAndKeepsConsuming() throws Exception {
+    Instant t = Instant.parse("2026-08-01T02:00:00Z");
+    long max = UsageRecordedListener.MAX_USAGE_MB;
+    send(new UsageRecorded("TEST-NUL\u0000", "2026-08", 1, "usage.csv", t));
+    send(new UsageRecorded("TEST-SRC", "2026-08", 1, "usage\u0000.csv", t));
+    send(new UsageRecorded("TEST-OVER", "2026-08", max + 1, "usage.csv", t));
+    send(new UsageRecorded("TEST-NEG", "2026-08", -1, "usage.csv", t));
+    send(new UsageRecorded("TEST-MAX", "2026-08", max, "usage.csv", t));
+    send(new UsageRecorded("_TEST-U", "2026-08", 0, "usage.csv", t));
+    send(new UsageRecorded("TEST-LAST", "2026-08", 7, "usage.csv", t));
+
+    await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
+        assertThat(testRows()).containsExactlyInAnyOrder(
+            new UsageRecord("TEST-MAX", "2026-08", max), new UsageRecord("_TEST-U", "2026-08", 0),
+            new UsageRecord("TEST-LAST", "2026-08", 7)));
+  }
+
   private void send(UsageRecorded u) throws Exception {
     kafka.send(Topics.USAGE_V1, u.key(), json.writeValueAsString(u)).get();
   }
 
   private List<UsageRecord> testRows() {
-    return usage.findAll().stream().filter(u -> u.acctId().startsWith("TEST-")).toList();
+    return usage.findAll().stream().filter(u -> u.acctId().startsWith("TEST-") || u.acctId().startsWith("_TEST-")).toList();
   }
 }

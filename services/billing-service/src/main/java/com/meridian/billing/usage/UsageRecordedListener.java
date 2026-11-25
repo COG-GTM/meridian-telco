@@ -24,7 +24,8 @@ public class UsageRecordedListener {
 
   private static final Logger log = LoggerFactory.getLogger(UsageRecordedListener.class);
   private static final Pattern PERIOD = Pattern.compile("\\d{4}-\\d{2}");
-  private static final Pattern ACCT_ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,63}");
+  /** Anything Postgres TEXT can hold (no NUL) and the legacy register can print on one line. */
+  private static final Pattern NO_CONTROL = Pattern.compile("\\P{Cntrl}*");
   /** Keeps every derived charge inside the invoice NUMERIC(14,2) columns (about 9.8e9 of overage). */
   static final long MAX_USAGE_MB = 1_000_000_000_000L;
 
@@ -55,7 +56,8 @@ public class UsageRecordedListener {
       skip(rec, "unreadable JSON");
       return;
     }
-    if (u.acctId() == null || !ACCT_ID.matcher(u.acctId()).matches() || u.period() == null
+    if (u.acctId() == null || u.acctId().isEmpty() || !NO_CONTROL.matcher(u.acctId()).matches()
+        || (u.source() != null && !NO_CONTROL.matcher(u.source()).matches()) || u.period() == null
         || !PERIOD.matcher(u.period()).matches() || u.usageMb() < 0 || u.usageMb() > MAX_USAGE_MB) {
       skip(rec, "invalid fields");
       return;
