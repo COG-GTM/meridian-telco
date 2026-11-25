@@ -19,6 +19,9 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        # inventory-service owns meridian.usage.v1 (compacted); never auto-create it here
+        allow.auto.create.topics: false
 meridian:
   kafka:
     # off by default: the service starts with only its Postgres
