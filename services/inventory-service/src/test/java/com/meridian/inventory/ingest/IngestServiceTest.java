@@ -36,11 +36,13 @@ class IngestServiceTest {
   }
 
   @Test
-  void aDropWithoutSiteTelemetryLeavesTheStoreAlone(@TempDir Path empty) throws Exception {
-    Files.writeString(empty.resolve("circuits.csv"), "CIRCUIT_ID\nX\n");
-    assertThat(ingest.run(empty)).isEmpty();
+  void aDropWithoutSiteTelemetryOnlyRefreshesLocations(@TempDir Path drop) throws Exception {
+    Files.writeString(drop.resolve("circuits.csv"), "CIRCUIT_ID\nX\n");
+    Files.copy(MeridianRoot.resolve("data/locations.csv"), drop.resolve("locations.csv"));
+    assertThat(ingest.run(drop)).isEmpty();
     assertThat(store.sites()).hasSize(412);
     assertThat(store.circuits()).hasSize(240);
+    assertThat(store.locations()).hasSize(22);
   }
 
   @Test
