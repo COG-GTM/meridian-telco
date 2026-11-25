@@ -1,0 +1,14 @@
+server:
+  port: 8084
+spring:
+  application:
+    name: network-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${NETWORK_DB_URL:jdbc:postgresql://localhost:5432/network}
+    username: ${NETWORK_DB_USER:network}
+    password: ${NETWORK_DB_PASSWORD:network}
+meridian:
+  network-dir: ${MERIDIAN_NETWORK_DIR:network}

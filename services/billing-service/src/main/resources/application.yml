@@ -1,0 +1,12 @@
+server:
+  port: 8082
+spring:
+  application:
+    name: billing-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${BILLING_DB_URL:jdbc:postgresql://localhost:5432/billing}
+    username: ${BILLING_DB_USER:billing}
+    password: ${BILLING_DB_PASSWORD:billing}

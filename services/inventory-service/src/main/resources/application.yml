@@ -1,0 +1,14 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: inventory-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${INVENTORY_DB_URL:jdbc:postgresql://localhost:5432/inventory}
+    username: ${INVENTORY_DB_USER:inventory}
+    password: ${INVENTORY_DB_PASSWORD:inventory}
+meridian:
+  data-dir: ${MERIDIAN_DATA_DIR:data}
