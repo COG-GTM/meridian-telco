@@ -8,7 +8,7 @@ java 21 services (replacing the C++ binaries below; see MIGRATION_PROGRESS.md)
                                         services, dashboard on :8000; `stop` to tear down)
   parity:  tools/parity/http-diff.sh   (live services vs frozen contracts/http)
            java -jar services/billing-service/target/billing-service-*[0-9T].jar billing-run \
-             --period 2026-07 --json > /tmp/r.jsonl && cmp /tmp/r.jsonl contracts/register/register-2026-07.jsonl
+             --period 2026-07 --json > "${r:=$(mktemp)}" && cmp "$r" contracts/register/register-2026-07.jsonl
 
   inventory-service  :8081  /sites /circuits /capacity, scheduled ingest of data/,
                             publishes usage to Kafka topic meridian.usage.v1
