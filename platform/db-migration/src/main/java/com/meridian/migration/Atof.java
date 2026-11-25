@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 /** C atof/atol semantics on the flat-file masters: longest numeric prefix, else the default. */
 final class Atof {
 
-  private static final Pattern DECIMAL = Pattern.compile("^\\s*([+-]?(\\d+\\.?\\d*|\\.\\d+))");
+  private static final Pattern DECIMAL = Pattern.compile("^\\s*([+-]?(\\d+\\.?\\d*|\\.\\d+)([eE][+-]?\\d+)?)");
   private static final Pattern INTEGER = Pattern.compile("^\\s*([+-]?\\d+)");
 
   private Atof() {}

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.flywaydb.core.Flyway;
@@ -59,6 +60,7 @@ public final class LegacyDataMigration {
     Report r = new LegacyDataMigration().run(
         Path.of(a.getOrDefault("--sqlite", "meridian.db")),
         Path.of(a.getOrDefault("--accounts", "billing/accounts")),
+        Path.of(a.getOrDefault("--usage", "data/usage.csv")),
         Path.of(a.getOrDefault("--network", "network")),
         target(a, "--inventory-url", "INVENTORY"),
         target(a, "--billing-url", "BILLING"),
@@ -71,11 +73,11 @@ public final class LegacyDataMigration {
   private static Target target(Map<String, String> a, String flag, String env) {
     String url = a.get(flag);
     if (url == null) throw new IllegalArgumentException(flag + " is required");
-    return new Target(url, System.getenv().getOrDefault(env + "_DB_USER", env.toLowerCase()),
-        System.getenv().getOrDefault(env + "_DB_PASSWORD", env.toLowerCase()));
+    return new Target(url, System.getenv().getOrDefault(env + "_DB_USER", env.toLowerCase(Locale.ROOT)),
+        System.getenv().getOrDefault(env + "_DB_PASSWORD", env.toLowerCase(Locale.ROOT)));
   }
 
-  public Report run(Path sqlite, Path accountsDir, Path networkDir,
+  public Report run(Path sqlite, Path accountsDir, Path usageCsv, Path networkDir,
       Target inventory, Target billing, Target network) throws Exception {
     migrate(inventory, "inventory");
     migrate(billing, "billing");
@@ -89,6 +91,7 @@ public final class LegacyDataMigration {
     }
     try (Connection bill = billing.open()) {
       loadAccounts(accountsDir, bill);
+      loadUsage(usageCsv, bill);
     }
     try (Connection net = network.open()) {
       loadNetwork(networkDir, net);
@@ -119,7 +122,7 @@ public final class LegacyDataMigration {
     }
     String marks = String.join(",", cols.stream().map(c -> "?").toList());
     try (PreparedStatement ps = dst.prepareStatement(
-        "INSERT INTO " + dstTable + " (" + colList.toLowerCase() + ") VALUES (" + marks + ")")) {
+        "INSERT INTO " + dstTable + " (" + colList.toLowerCase(Locale.ROOT) + ") VALUES (" + marks + ")")) {
       for (Object[] row : data) {
         for (int i = 0; i < row.length; i++) ps.setObject(i + 1, row[i]);
         ps.addBatch();
@@ -130,7 +133,7 @@ public final class LegacyDataMigration {
     dst.setAutoCommit(true);
     rows.put(dstTable, data.size());
     verified.put(dstTable, digest(src, "SELECT " + colList + " FROM " + srcTable + " ORDER BY " + orderBy)
-        .equals(digest(dst, "SELECT " + colList.toLowerCase() + " FROM " + dstTable + " ORDER BY " + orderBy.toLowerCase())));
+        .equals(digest(dst, "SELECT " + colList.toLowerCase(Locale.ROOT) + " FROM " + dstTable + " ORDER BY " + orderBy.toLowerCase(Locale.ROOT))));
   }
 
   /** SHA-256 over every value rendered as text; numbers are normalized so 1 and 1.0 agree. */
@@ -222,6 +225,67 @@ public final class LegacyDataMigration {
     }
   }
 
+  /**
+   * data/usage.csv into billing's usage_record, so billing has the period's usage before the Kafka feed runs.
+   * Like the SeedLoader, a row already delivered by the feed is never overwritten.
+   */
+  private void loadUsage(Path csv, Connection dst) throws SQLException, IOException {
+    if (!Files.isRegularFile(csv)) return;
+    Map<String, Long> want = new LinkedHashMap<>();
+    for (Map<String, String> r : readCsv(csv)) {
+      want.putIfAbsent(r.get("ACCT_ID") + "|" + r.get("PERIOD"), Atof.integer(r.get("USAGE_MB"), 0));
+    }
+    try (PreparedStatement ps = dst.prepareStatement("INSERT INTO usage_record (acct_id, period, seq, usage_mb, "
+        + "source) VALUES (?, ?, nextval('usage_record_seq'), ?, ?) ON CONFLICT (acct_id, period) DO NOTHING")) {
+      for (var e : want.entrySet()) {
+        String[] k = e.getKey().split("\\|", 2);
+        ps.setString(1, k[0]);
+        ps.setString(2, k[1]);
+        ps.setLong(3, e.getValue());
+        ps.setString(4, "migration:" + csv.getFileName());
+        ps.addBatch();
+      }
+      ps.executeBatch();
+    }
+    int present = 0;
+    try (Statement st = dst.createStatement();
+         ResultSet rs = st.executeQuery("SELECT acct_id, period FROM usage_record")) {
+      while (rs.next()) if (want.containsKey(rs.getString(1) + "|" + rs.getString(2))) present++;
+    }
+    rows.put("usage_record", want.size());
+    verified.put("usage_record", present == want.size());
+  }
+
+  /** mediation/csv.h read_csv: header row, quotes toggle and are dropped, empty lines skipped, missing fields "". */
+  static List<Map<String, String>> readCsv(Path path) throws IOException {
+    List<String> lines = Files.readAllLines(path);
+    List<Map<String, String>> out = new ArrayList<>();
+    if (lines.isEmpty()) return out;
+    List<String> hdr = splitLine(lines.get(0));
+    for (String line : lines.subList(1, lines.size())) {
+      if (line.isEmpty()) continue;
+      List<String> v = splitLine(line);
+      Map<String, String> row = new LinkedHashMap<>();
+      for (String h : hdr) row.putIfAbsent(h, "");
+      for (int i = 0; i < hdr.size() && i < v.size(); i++) row.put(hdr.get(i), v.get(i));
+      out.add(row);
+    }
+    return out;
+  }
+
+  static List<String> splitLine(String line) {
+    List<String> out = new ArrayList<>();
+    StringBuilder cur = new StringBuilder();
+    boolean q = false;
+    for (char c : line.toCharArray()) {
+      if (c == '"') q = !q;
+      else if (c == ',' && !q) { out.add(cur.toString()); cur.setLength(0); }
+      else cur.append(c);
+    }
+    out.add(cur.toString());
+    return out;
+  }
+
   // ---------------------------------------------------------------- network config files
 
   private void loadNetwork(Path dir, Connection dst) throws SQLException, IOException {
@@ -229,21 +293,17 @@ public final class LegacyDataMigration {
     try (Statement st = dst.createStatement()) {
       st.execute("TRUNCATE device, reserved_range, snmp_target");
     }
-    List<String> devices = Files.readAllLines(dir.resolve("devices.csv"));
-    List<String> hdr = List.of(devices.get(0).split(",", -1));
     int n = 0;
     try (PreparedStatement ps = dst.prepareStatement("INSERT INTO device (seq, device_name, region, role, "
         + "mgmt_ip, site_cd, external_bgp) VALUES (?,?,?,?,?,?,?)")) {
-      for (String line : devices.subList(1, devices.size())) {
-        if (line.isEmpty()) continue;
-        String[] v = line.split(",", -1);
+      for (Map<String, String> v : readCsv(dir.resolve("devices.csv"))) {
         ps.setInt(1, ++n);
-        ps.setString(2, v[hdr.indexOf("device_name")]);
-        ps.setString(3, v[hdr.indexOf("region")]);
-        ps.setString(4, v[hdr.indexOf("role")]);
-        ps.setString(5, v[hdr.indexOf("mgmt_ip")]);
-        ps.setString(6, v[hdr.indexOf("site_cd")]);
-        ps.setBoolean(7, "1".equals(v[hdr.indexOf("external_bgp")]));
+        ps.setString(2, v.getOrDefault("device_name", ""));
+        ps.setString(3, v.getOrDefault("region", ""));
+        ps.setString(4, v.getOrDefault("role", ""));
+        ps.setString(5, v.getOrDefault("mgmt_ip", ""));
+        ps.setString(6, v.getOrDefault("site_cd", ""));
+        ps.setBoolean(7, "1".equals(v.get("external_bgp")));
         ps.addBatch();
       }
       ps.executeBatch();

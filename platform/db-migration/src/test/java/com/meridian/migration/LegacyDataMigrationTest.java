@@ -65,11 +65,11 @@ class LegacyDataMigrationTest {
   @Test
   void splitsSharedStateIntoPerServiceStores() throws Exception {
     var report = new LegacyDataMigration().run(legacyStore(), root().resolve("billing/accounts"),
-        root().resolve("network"), t(inventory), t(billing), t(network));
+        root().resolve("data/usage.csv"), root().resolve("network"), t(inventory), t(billing), t(network));
 
     assertThat(report.ok()).as(report.toString()).isTrue();
     assertThat(report.rows()).containsEntry("site", 412).containsEntry("circuit", 240)
-        .containsEntry("account", 200).containsEntry("device", 147)
+        .containsEntry("account", 200).containsEntry("usage_record", 400).containsEntry("device", 147)
         .containsEntry("reserved_range", 2).containsEntry("snmp_target", 138);
 
     try (Connection c = DriverManager.getConnection(billing.getJdbcUrl(), billing.getUsername(), billing.getPassword());
@@ -81,16 +81,30 @@ class LegacyDataMigrationTest {
       assertThat(rs.getBigDecimal(3)).isEqualByComparingTo("700.9");
       assertThat(rs.getInt(4)).isEqualTo(14);
     }
+    try (Connection c = DriverManager.getConnection(billing.getJdbcUrl(), billing.getUsername(), billing.getPassword());
+         Statement st = c.createStatement();
+         ResultSet rs = st.executeQuery("SELECT usage_mb FROM usage_record WHERE acct_id='BEACON-004417' AND period='2026-06'")) {
+      assertThat(rs.next()).isTrue();
+      assertThat(rs.getLong(1)).isEqualTo(5813259L);
+    }
   }
 
   @Test
   void rerunIsIdempotent() throws Exception {
     Path db = legacyStore();
     var m = new LegacyDataMigration();
-    m.run(db, root().resolve("billing/accounts"), root().resolve("network"), t(inventory), t(billing), t(network));
-    var again = new LegacyDataMigration().run(db, root().resolve("billing/accounts"), root().resolve("network"),
+    m.run(db, root().resolve("billing/accounts"), root().resolve("data/usage.csv"), root().resolve("network"), t(inventory), t(billing), t(network));
+    var again = new LegacyDataMigration().run(db, root().resolve("billing/accounts"), root().resolve("data/usage.csv"), root().resolve("network"),
         t(inventory), t(billing), t(network));
     assertThat(again.ok()).isTrue();
-    assertThat(again.rows()).containsEntry("site", 412).containsEntry("account", 200);
+    assertThat(again.rows()).containsEntry("site", 412).containsEntry("account", 200).containsEntry("usage_record", 400);
+  }
+
+  @Test
+  void flatFilesParseLikeTheLegacyReaders() {
+    assertThat(LegacyDataMigration.splitLine("\"edge, east\",NE,10.20.1.1")).containsExactly("edge, east", "NE", "10.20.1.1");
+    assertThat(Atof.decimal("1.5e3", "0")).isEqualByComparingTo("1500");
+    assertThat(Atof.decimal("2E-2x", "0")).isEqualByComparingTo("0.02");
+    assertThat(Atof.decimal("7e", "0")).isEqualByComparingTo("7");
   }
 }
