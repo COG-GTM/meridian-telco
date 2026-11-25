@@ -90,4 +90,12 @@ class TelemetryCsvLegacyQuirksTest {
     Files.write(csv, new byte[] {'A', '\n', (byte) 0xC3, '(', '\n', 'o', 'k', '\n'});
     assertThat(TelemetryCsv.read(csv)).containsExactly(Map.of("A", "\uFFFD("), Map.of("A", "ok"));
   }
+
+  /** Values printed by glibc atof for the same strings. */
+  @Test
+  void toDoubleReadsHexFloatsLikeAtof() {
+    String[] in = {"0x1.8p5", "0x1.8", "0x.8", "0x", "0xg", "-0X1P-2", " +0x10p", "0x1p+3x", "0x.p1", "0xAbC.dEp-1"};
+    double[] atof = {48, 1.5, 0.5, 0, 0, -0.25, 16, 8, 0, 1374.43359375};
+    for (int i = 0; i < in.length; i++) assertThat(TelemetryCsv.toDouble(in[i])).as(in[i]).isEqualTo(atof[i]);
+  }
 }

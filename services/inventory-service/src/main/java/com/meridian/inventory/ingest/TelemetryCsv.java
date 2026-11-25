@@ -43,6 +43,8 @@ public final class TelemetryCsv {
   private static final Pattern ATOL = Pattern.compile("^[ \\t\\n\\u000B\\f\\r]*([+-]?\\d+)");
   private static final Pattern ATOF =
       Pattern.compile("^[ \\t\\n\\u000B\\f\\r]*([+-]?(\\d+\\.?\\d*|\\.\\d+)([eE][+-]?\\d+)?)");
+  private static final Pattern ATOF_HEX = Pattern.compile(
+      "^[ \\t\\n\\u000B\\f\\r]*([+-]?)0[xX](?=\\.?[0-9a-fA-F])([0-9a-fA-F]*)(?:\\.([0-9a-fA-F]*))?(?:[pP]([+-]?\\d+))?");
   private static final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
   private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
 
@@ -87,9 +89,19 @@ public final class TelemetryCsv {
     return v.max(LONG_MIN).min(LONG_MAX).longValue();
   }
 
-  /** csv.h to_dbl (atof) for decimal input: longest decimal prefix, else 0. */
+  /** csv.h to_dbl (glibc atof): longest decimal or hex-float prefix, else 0. */
   public static double toDouble(String s) {
     if (s == null || s.isEmpty()) return 0.0;
+    Matcher hex = ATOF_HEX.matcher(s);
+    if (hex.find()) {
+      String exp = hex.group(4) == null ? "0" : hex.group(4);
+      try {
+        return Double.parseDouble(hex.group(1) + "0x" + hex.group(2) + "."
+            + (hex.group(3) == null ? "" : hex.group(3)) + "p" + exp);
+      } catch (NumberFormatException e) {
+        return 0.0; // exponent beyond int range
+      }
+    }
     Matcher m = ATOF.matcher(s);
     return m.find() ? Double.parseDouble(m.group(1)) : 0.0;
   }
