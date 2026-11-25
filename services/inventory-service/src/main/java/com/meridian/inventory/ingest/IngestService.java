@@ -4,6 +4,7 @@ import com.meridian.contracts.events.UsageRecorded;
 import com.meridian.inventory.events.UsagePublisher;
 import com.meridian.inventory.ingest.MediationRun.IngestSummary;
 import com.meridian.inventory.store.InventoryStore;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -51,7 +52,7 @@ public class IngestService {
     return run(dataDir);
   }
 
-  /** Empty when another run is in progress or the drop has no site telemetry (store untouched). */
+  /** Empty when another run is in progress or the drop has no site telemetry (only locations and usage stored). */
   public Optional<IngestResult> run(Path dir) {
     if (!running.tryLock()) {
       log.warn("mediation run already in progress, skipping {}", dir);
@@ -62,8 +63,13 @@ public class IngestService {
       MediationDrop drop = MediationDrop.load(dir);
       if (drop.siteRows().isEmpty()) {
         log.error("no site telemetry found in {}", dir);
-        // inventory-api loaded locations.csv on its own, independent of the site feed
-        tx.executeWithoutResult(s -> store.replaceLocations(drop.locations()));
+        // inventory-api loaded locations.csv, and billing usage.csv, independent of the site feed
+        List<MediationDrop.Usage> usage = drop.usage();
+        tx.executeWithoutResult(s -> {
+          if (hasLocations(dir)) store.replaceLocations(drop.locations());
+          store.upsertUsage(usage, USAGE_SOURCE, started);
+        });
+        publishPending();
         return Optional.empty();
       }
       IngestSummary summary = MediationRun.summarize(drop);
@@ -72,7 +78,7 @@ public class IngestService {
       tx.executeWithoutResult(s -> {
         long id = store.startRun(dir.toString(), started);
         store.replaceSitesAndCircuits(drop.sites(), drop.circuits());
-        store.replaceLocations(locations);
+        if (hasLocations(dir)) store.replaceLocations(locations);
         store.upsertUsage(usage, USAGE_SOURCE, started);
         store.finishRun(id, Instant.now(), summary.sitesLoaded(), summary.circuitsLoaded(),
             locations.size(), usage.size(), summary.legacyReport());
@@ -86,12 +92,18 @@ public class IngestService {
     }
   }
 
-  /** inventory-api startup: serve locations.csv from the drop as it is now. */
+  /** inventory-api startup: serve locations.csv from the drop as it is now (kept if it is missing). */
   public int refreshLocations() {
+    if (!hasLocations(dataDir)) return 0;
     List<MediationDrop.Location> locations = new MediationDrop(dataDir, List.of(), List.of(),
         TelemetryCsv.read(dataDir.resolve("locations.csv")), List.of()).locations();
     tx.executeWithoutResult(s -> store.replaceLocations(locations));
     return locations.size();
+  }
+
+  /** A drop without a readable locations.csv leaves the stored locations alone. */
+  private static boolean hasLocations(Path dir) {
+    return Files.isReadable(dir.resolve("locations.csv"));
   }
 
   /**

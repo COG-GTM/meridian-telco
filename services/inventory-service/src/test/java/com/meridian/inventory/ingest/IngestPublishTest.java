@@ -82,4 +82,14 @@ class IngestPublishTest {
     assertThat(store.usage()).filteredOn(u -> u.acctId().equals("C-3"))
         .singleElement().satisfies(u -> assertThat(u.publishedAt()).isNull());
   }
+
+  @Test
+  void usageIsPublishedEvenWhenTheDropHasNoSiteTelemetry() throws Exception {
+    brokerUp = true;
+    Path d = Files.createDirectories(dir.resolve("usage-only"));
+    Files.writeString(d.resolve("usage.csv"), "ACCT_ID,PERIOD,USAGE_MB\nD-4,2026-06,7\n");
+    assertThat(ingest.run(d)).isEmpty();
+    assertThat(calls.get(calls.size() - 1)).extracting(UsageRecorded::key).containsExactly("D-4|2026-06");
+    assertThat(store.usage()).singleElement().satisfies(u -> assertThat(u.publishedAt()).isNotNull());
+  }
 }
