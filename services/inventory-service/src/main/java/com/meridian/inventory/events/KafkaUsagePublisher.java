@@ -25,15 +25,24 @@ public class KafkaUsagePublisher implements UsagePublisher {
     this.ackTimeout = ackTimeout;
   }
 
+  /**
+   * Sends until the batch deadline passes, then waits for acknowledgements against that same
+   * deadline. Whatever is not acknowledged stays unpublished in Postgres for the next run.
+   */
   @Override
   public List<UsageRecorded> publish(List<UsageRecorded> records) {
+    long deadline = System.nanoTime() + ackTimeout.toNanos();
     List<CompletableFuture<SendResult<String, UsageRecorded>>> sent = new ArrayList<>(records.size());
     for (UsageRecorded r : records) {
-      sent.add(kafka.send(Topics.USAGE_V1, r.key(), r));
+      if (System.nanoTime() - deadline >= 0) break;
+      try {
+        sent.add(kafka.send(Topics.USAGE_V1, r.key(), r));
+      } catch (RuntimeException e) {
+        sent.add(CompletableFuture.failedFuture(e));
+      }
     }
-    // one deadline for the whole batch; the producer sends on its own linger, no blocking flush()
-    long deadline = System.nanoTime() + ackTimeout.toNanos();
     List<UsageRecorded> acked = new ArrayList<>(records.size());
+    Exception firstError = null;
     for (int i = 0; i < sent.size(); i++) {
       try {
         sent.get(i).get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
@@ -42,8 +51,13 @@ public class KafkaUsagePublisher implements UsagePublisher {
         Thread.currentThread().interrupt();
         break;
       } catch (Exception e) {
-        log.warn("usage record {} not published: {}", records.get(i).key(), e.toString());
+        if (firstError == null) firstError = e;
       }
+    }
+    if (acked.size() < records.size()) {
+      log.warn("{} of {} usage records not acknowledged within {}, left for the next run: {}",
+          records.size() - acked.size(), records.size(), ackTimeout,
+          firstError == null ? "deadline passed" : firstError.toString());
     }
     return acked;
   }
