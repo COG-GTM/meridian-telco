@@ -4,9 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.meridian.contracts.testkit.MeridianRoot;
+import com.meridian.network.ipam.NetworkFiles;
+import com.meridian.network.store.NetworkLoader;
+import com.meridian.network.store.NetworkStore;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -42,6 +50,7 @@ class NetworkServiceApiTest {
 
   @Autowired TestRestTemplate http;
   @Autowired JdbcTemplate jdbc;
+  @Autowired NetworkStore store;
   final ObjectMapper json = new ObjectMapper();
 
   JsonNode getJson(String path) throws Exception {
@@ -130,5 +139,29 @@ class NetworkServiceApiTest {
     ResponseEntity<String> r = http.exchange("/ipam/report", HttpMethod.OPTIONS, new HttpEntity<>(h), String.class);
     assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
     assertThat(r.getHeaders().getAccessControlAllowOrigin()).isEqualTo("*");
+  }
+
+  @Test
+  void preflightAllowsRequestHeaders() {
+    HttpHeaders h = new HttpHeaders();
+    h.setOrigin("http://localhost:8000");
+    h.setAccessControlRequestMethod(HttpMethod.POST);
+    h.setAccessControlRequestHeaders(List.of("Content-Type", "X-Requested-With"));
+    ResponseEntity<String> r = http.exchange("/ipam/refresh", HttpMethod.OPTIONS, new HttpEntity<>(h), String.class);
+    assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(r.getHeaders().getAccessControlAllowOrigin()).isEqualTo("*");
+    assertThat(r.getHeaders().getAccessControlAllowHeaders())
+        .anySatisfy(v -> assertThat(v).isIn("*", "Content-Type", "content-type"));
+  }
+
+  @Test
+  void refreshWithAMissingConfFileLeavesTheStoreUntouched(@TempDir Path tmp) throws Exception {
+    Path network = MeridianRoot.resolve("network");
+    Files.copy(network.resolve(NetworkFiles.DEVICES), tmp.resolve(NetworkFiles.DEVICES));
+    Files.copy(network.resolve(NetworkFiles.RESERVED_RANGES), tmp.resolve(NetworkFiles.RESERVED_RANGES));
+    NetworkLoader loader = new NetworkLoader(store, tmp, false);
+    assertThatThrownBy(loader::refresh).isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(NetworkFiles.SNMP_POLLING);
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM snmp_target", Integer.class)).isEqualTo(138);
   }
 }

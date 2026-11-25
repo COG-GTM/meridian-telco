@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -31,7 +32,8 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
         throws ServletException, IOException {
-      res.setHeader("Access-Control-Allow-Origin", "*");
+      // preflights are answered by Spring's CORS handling, which skips responses that already carry the header
+      if (!CorsUtils.isPreFlightRequest(req)) res.setHeader("Access-Control-Allow-Origin", "*");
       chain.doFilter(req, res);
     }
   }
