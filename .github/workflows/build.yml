@@ -21,8 +21,10 @@ jobs:
         run: |
           jar=$(ls services/billing-service/target/billing-service-*.jar | grep -v '\.original$')
           for p in 2026-06 2026-07; do
-            java -jar "$jar" billing-run --period "$p" | cmp - "contracts/register/register-$p.txt"
-            java -jar "$jar" billing-run --period "$p" --json | cmp - "contracts/register/register-$p.jsonl"
+            java -jar "$jar" billing-run --period "$p" > "register-$p.txt"
+            java -jar "$jar" billing-run --period "$p" --json > "register-$p.jsonl"
+            cmp "register-$p.txt" "contracts/register/register-$p.txt"
+            cmp "register-$p.jsonl" "contracts/register/register-$p.jsonl"
           done
       - if: always()
         uses: actions/upload-artifact@v4
