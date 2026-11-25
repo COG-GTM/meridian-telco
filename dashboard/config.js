@@ -5,3 +5,10 @@ window.MERIDIAN_CONFIG = Object.assign({
   billingApi: "http://localhost:8082",     // billing-service: /invoices
   networkApi: "http://localhost:8084"      // network-service: /ipam/report /devices ...
 }, window.MERIDIAN_CONFIG || {});
+
+/* HTML-escape API values before they are put into innerHTML. */
+window.esc = window.esc || function (v) {
+  return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+};

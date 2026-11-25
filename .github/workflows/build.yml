@@ -32,3 +32,18 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - run: tools/legacy/capture-contracts.sh --check
+
+  # Phase 3 parallel run: legacy bin/billing-run vs Java billing-run, text and --json, byte for byte.
+  register-parity:
+    name: register parity (C++ vs Java)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - run: |
+          for p in 2026-06 2026-07; do services/billing-service/tools/register-diff.sh "$p"; done

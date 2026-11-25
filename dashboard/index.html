@@ -47,8 +47,8 @@ fetch(API + "/sites").then(function (r) { return r.json(); }).then(function (d) 
   d.sites.forEach(function (s) {
     if (s.STATUS_CD === 1) active++;
     avail += s.AVAIL_CAP_MBPS;
-    html += "<tr><td>" + s.ASSET_ID + "</td><td>" + s.SITE_NM + "</td><td>" + s.REGION_CD +
-            "</td><td>" + s.STATUS_CD + " " + s.STATUS_LABEL + "</td><td>" + s.TOWER_REG +
+    html += "<tr><td>" + s.ASSET_ID + "</td><td>" + esc(s.SITE_NM) + "</td><td>" + esc(s.REGION_CD) +
+            "</td><td>" + s.STATUS_CD + " " + esc(s.STATUS_LABEL) + "</td><td>" + esc(s.TOWER_REG) +
             "</td><td>" + s.TOTAL_CAP_MBPS + "</td><td>" + s.ALLOC_CAP_MBPS + "</td><td>" +
             s.AVAIL_CAP_MBPS + "</td></tr>";
   });
