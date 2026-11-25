@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** network-service's own PostgreSQL store (Flyway V1: device, reserved_range, snmp_target). */
@@ -51,6 +52,14 @@ public class NetworkStore {
           ps.setObject(3, t.intervalSeconds());
           ps.setString(4, t.host());
         });
+  }
+
+  public record Snapshot(List<Device> devices, List<ReservedRange> reservedRanges, List<SnmpTarget> snmpTargets) {}
+
+  /** All three tables read in one transaction, so a concurrent refresh is seen entirely or not at all. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Snapshot snapshot() {
+    return new Snapshot(devices(), reservedRanges(), snmpTargets());
   }
 
   public List<Device> devices() {

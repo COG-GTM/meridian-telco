@@ -44,15 +44,16 @@ public class IpamController {
 
   @GetMapping("/ipam/report")
   public IpamReportView report() {
-    List<Device> devices = loadedDevices();
+    NetworkStore.Snapshot s = store.snapshot();
+    List<Device> devices = requireDevices(s.devices());
     return new IpamReportView(IpamReport.summarize(devices),
-        ConfigAnalysis.of(devices, store.reservedRanges(), store.snmpTargets()));
+        ConfigAnalysis.of(devices, s.reservedRanges(), s.snmpTargets()));
   }
 
   /** Byte-identical to bin/ipam stdout over the loaded devices.csv. */
   @GetMapping(value = "/ipam/report.txt", produces = "text/plain;charset=UTF-8")
   public String reportText() {
-    return IpamReport.legacyText(loadedDevices());
+    return IpamReport.legacyText(requireDevices(store.devices()));
   }
 
   @PostMapping("/ipam/refresh")
@@ -84,8 +85,7 @@ public class IpamController {
     return new ErrorBody(e.getMessage());
   }
 
-  private List<Device> loadedDevices() {
-    List<Device> devices = store.devices();
+  private static List<Device> requireDevices(List<Device> devices) {
     if (devices.isEmpty()) {
       throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "no devices loaded");
     }
