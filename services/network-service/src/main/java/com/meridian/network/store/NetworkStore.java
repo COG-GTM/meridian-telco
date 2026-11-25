@@ -30,7 +30,10 @@ public class NetworkStore {
 
   @Transactional
   public void replaceAll(List<Device> devices, List<ReservedRange> ranges, List<SnmpTarget> targets) {
-    jdbc.execute("TRUNCATE device, reserved_range, snmp_target");
+    // DELETE, not TRUNCATE: TRUNCATE is not MVCC-safe, so a concurrent snapshot() would see empty tables
+    jdbc.update("DELETE FROM device");
+    jdbc.update("DELETE FROM reserved_range");
+    jdbc.update("DELETE FROM snmp_target");
     jdbc.batchUpdate("INSERT INTO device (seq, device_name, region, role, mgmt_ip, site_cd, external_bgp)"
         + " VALUES (?,?,?,?,?,?,?)", devices, 500, (ps, d) -> {
           ps.setInt(1, d.seq());
