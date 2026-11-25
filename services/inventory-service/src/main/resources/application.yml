@@ -10,5 +10,19 @@ spring:
     url: ${INVENTORY_DB_URL:jdbc:postgresql://localhost:5432/inventory}
     username: ${INVENTORY_DB_USER:inventory}
     password: ${INVENTORY_DB_PASSWORD:inventory}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
 meridian:
   data-dir: ${MERIDIAN_DATA_DIR:data}
+  ingest:
+    # legacy crontab: 0 2 * * *
+    cron: ${MERIDIAN_INGEST_CRON:0 0 2 * * *}
+    zone: ${MERIDIAN_INGEST_ZONE:}
+    on-startup: ${MERIDIAN_INGEST_ON_STARTUP:false}
+  kafka:
+    # usage feed to billing-service (meridian.usage.v1); off so the service needs only Postgres
+    enabled: ${MERIDIAN_KAFKA_ENABLED:false}

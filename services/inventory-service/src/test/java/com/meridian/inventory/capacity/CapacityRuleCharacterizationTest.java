@@ -2,7 +2,6 @@ package com.meridian.inventory.capacity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -11,7 +10,6 @@ import org.junit.jupiter.params.provider.CsvSource;
  * mediation/capacity.cpp + locations.cpp. The sales desk rule is AVAIL = TOTAL - ALLOC with no
  * maintenance buffer (README, capacity.cpp RS 2009-11, locations.cpp "we do not hold anything back").
  */
-@Tag("pending")
 class CapacityRuleCharacterizationTest {
 
   final CapacityRule rule = new CapacityRule();

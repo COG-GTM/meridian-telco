@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,7 +16,6 @@ import org.junit.jupiter.params.provider.CsvSource;
  * Characterization of mediation/csv.h as used by mediation/ingest.cpp. Expected values were
  * observed by running csv.h read_csv/to_int on the same inputs (g++ probe, 2026-11-25).
  */
-@Tag("pending")
 class TelemetryCsvCharacterizationTest {
 
   @TempDir Path dir;
