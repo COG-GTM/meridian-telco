@@ -6,6 +6,7 @@ import com.meridian.billing.rules.AccountsRule;
 import com.meridian.billing.rules.InvoiceComposer;
 import com.meridian.billing.store.AccountRepository;
 import com.meridian.billing.store.UsageRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -36,10 +36,9 @@ public class InvoicesController {
 
   @RequestMapping(path = {"/invoices", "/invoices*", "/invoices/**", "/invoices*/**"})
   public ResponseEntity<InvoiceView.Page> invoices(
-      @RequestParam(name = "acct", required = false) List<String> accts,
-      @RequestParam(name = "period", required = false) List<String> periods) {
-    String acct = last(accts);
-    String period = last(periods);
+      HttpServletRequest req) {
+    String acct = last(req.getParameterValues("acct"));
+    String period = last(req.getParameterValues("period"));
     Map<String, Account> byId = AccountsRule.index(accounts.findAll());
     List<InvoiceView> out = new ArrayList<>();
     for (UsageRecord u : usage.findAll()) {
@@ -54,7 +53,7 @@ public class InvoicesController {
   }
 
   /** httpd.h parse_target: a repeated query key keeps its last value. */
-  private static String last(List<String> values) {
-    return values == null || values.isEmpty() ? "" : values.getLast();
+  private static String last(String[] values) {
+    return values == null || values.length == 0 ? "" : values[values.length - 1];
   }
 }

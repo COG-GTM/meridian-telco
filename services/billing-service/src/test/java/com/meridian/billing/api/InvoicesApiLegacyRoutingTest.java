@@ -27,6 +27,13 @@ class InvoicesApiLegacyRoutingTest {
   }
 
   @Test
+  void commaInAFilterIsPartOfTheValue() {
+    ResponseEntity<String> res = http.getForEntity("/invoices?acct=NOPE-000000,BEACON-004417", String.class);
+    assertThat(res.getStatusCode().value()).isEqualTo(404);
+    assertThat(res.getBody()).isEqualTo("{\"invoices\":[]}");
+  }
+
+  @Test
   void anyAcceptHeaderGetsJson() {
     HttpHeaders h = new HttpHeaders();
     h.set(HttpHeaders.ACCEPT, "text/html");
