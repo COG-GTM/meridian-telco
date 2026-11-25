@@ -49,19 +49,12 @@ public class UsageRepository {
         .update();
   }
 
-  /**
-   * Seeds a record from a file. Refreshes a row seeded from the same file (a corrected CSV), but
-   * never overrides a record received from the feed.
-   */
-  public int seed(UsageRecord u, String source) {
+  /** Seeds a record without overriding anything already received from the feed. */
+  public int insertIfAbsent(UsageRecord u, String source) {
     return jdbc.sql("""
             INSERT INTO usage_record (acct_id, period, seq, usage_mb, source)
             VALUES (?, ?, nextval('usage_record_seq'), ?, ?)
-            ON CONFLICT (acct_id, period) DO UPDATE
-               SET usage_mb = EXCLUDED.usage_mb, received_at = now()
-             WHERE usage_record.source = EXCLUDED.source
-               AND usage_record.recorded_at IS NULL
-               AND usage_record.usage_mb <> EXCLUDED.usage_mb""")
+            ON CONFLICT (acct_id, period) DO NOTHING""")
         .params(u.acctId(), u.period(), u.usageMb(), source)
         .update();
   }

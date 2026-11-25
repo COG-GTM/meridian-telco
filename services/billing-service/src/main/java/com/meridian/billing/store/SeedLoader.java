@@ -49,7 +49,7 @@ public class SeedLoader implements ApplicationRunner {
     if (!usageCsv.isBlank()) {
       int n = 0;
       for (UsageRecord u : AccountsRule.loadUsage(Path.of(usageCsv))) {
-        n += usage.seed(u, "file:" + Path.of(usageCsv).getFileName());
+        n += usage.insertIfAbsent(u, "file:" + Path.of(usageCsv).getFileName());
       }
       log.info("seeded {} usage records from {}", n, usageCsv);
     }
