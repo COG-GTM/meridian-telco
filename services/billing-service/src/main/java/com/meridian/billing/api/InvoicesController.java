@@ -34,7 +34,7 @@ public class InvoicesController {
     this.usage = usage;
   }
 
-  @RequestMapping(path = {"/invoices", "/invoices*", "/invoices/**"}, produces = MediaType.APPLICATION_JSON_VALUE)
+  @RequestMapping(path = {"/invoices", "/invoices*", "/invoices/**", "/invoices*/**"}, produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<InvoiceView.Page> invoices(
       @RequestParam(name = "acct", defaultValue = "") String acct,
       @RequestParam(name = "period", defaultValue = "") String period) {
