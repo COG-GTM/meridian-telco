@@ -51,7 +51,8 @@ public final class TelemetryCsv {
   public static List<Map<String, String>> read(Path csv) {
     String text;
     try {
-      text = Files.readString(csv, StandardCharsets.UTF_8);
+      // csv.h reads bytes: a malformed UTF-8 sequence must not abort the drop, it becomes U+FFFD
+      text = new String(Files.readAllBytes(csv), StandardCharsets.UTF_8);
     } catch (NoSuchFileException e) {
       return List.of();
     } catch (IOException e) {

@@ -83,4 +83,11 @@ class TelemetryCsvLegacyQuirksTest {
     assertThat(MediationDrop.storedReal("")).isEqualTo(0.0);
     assertThat(MediationDrop.storedReal("1e-7")).isEqualTo(0.0);
   }
+
+  @Test
+  void malformedUtf8DoesNotAbortTheFile(@TempDir Path dir) throws Exception {
+    Path csv = dir.resolve("usage.csv");
+    Files.write(csv, new byte[] {'A', '\n', (byte) 0xC3, '(', '\n', 'o', 'k', '\n'});
+    assertThat(TelemetryCsv.read(csv)).containsExactly(Map.of("A", "\uFFFD("), Map.of("A", "ok"));
+  }
 }
