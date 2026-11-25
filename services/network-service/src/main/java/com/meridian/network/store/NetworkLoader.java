@@ -37,8 +37,9 @@ public class NetworkLoader implements ApplicationRunner {
   @Override
   public void run(ApplicationArguments args) {
     if (!loadOnStartup) return;
-    if (!Files.isRegularFile(networkDir.resolve(NetworkFiles.DEVICES))) {
-      log.warn("no {} in {}; store left as is (POST /ipam/refresh to load)", NetworkFiles.DEVICES,
+    String missing = missingFile();
+    if (missing != null) {
+      log.warn("no {} in {}; store left as is (POST /ipam/refresh to load)", missing,
           networkDir.toAbsolutePath());
       return;
     }
@@ -46,15 +47,25 @@ public class NetworkLoader implements ApplicationRunner {
     log.info("loaded {}", r);
   }
 
-  /** Replaces the store contents with the current files. Refuses an empty/missing device file. */
+  /**
+   * Replaces the store contents with the current files. Refuses (store untouched) when any of the
+   * three files is missing or devices.csv has no rows.
+   */
   public synchronized LoadResult refresh() {
+    String missing = missingFile();
+    if (missing != null) throw new IllegalStateException("no " + missing + " in network dir");
     List<Device> devices = NetworkFiles.readDevices(networkDir.resolve(NetworkFiles.DEVICES));
-    if (devices.isEmpty()) {
-      throw new IllegalStateException("no device file at " + networkDir.resolve(NetworkFiles.DEVICES));
-    }
+    if (devices.isEmpty()) throw new IllegalStateException("no devices in " + NetworkFiles.DEVICES);
     List<ReservedRange> ranges = NetworkFiles.readReservedRanges(networkDir.resolve(NetworkFiles.RESERVED_RANGES));
     List<SnmpTarget> targets = NetworkFiles.readSnmpTargets(networkDir.resolve(NetworkFiles.SNMP_POLLING));
     store.replaceAll(devices, ranges, targets);
     return new LoadResult(networkDir.toString(), devices.size(), ranges.size(), targets.size());
+  }
+
+  private String missingFile() {
+    for (String f : List.of(NetworkFiles.DEVICES, NetworkFiles.RESERVED_RANGES, NetworkFiles.SNMP_POLLING)) {
+      if (!Files.isRegularFile(networkDir.resolve(f))) return f;
+    }
+    return null;
   }
 }
