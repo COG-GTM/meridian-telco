@@ -8,6 +8,7 @@ import com.meridian.billing.store.AccountRepository;
 import com.meridian.billing.store.UsageRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -37,8 +38,9 @@ public class InvoicesController {
   @RequestMapping(path = {"/invoices", "/invoices*", "/invoices/**", "/invoices*/**"})
   public ResponseEntity<InvoiceView.Page> invoices(
       HttpServletRequest req) {
-    String acct = last(req.getParameterValues("acct"));
-    String period = last(req.getParameterValues("period"));
+    Map<String, String> q = parseQuery(req.getQueryString());
+    String acct = q.getOrDefault("acct", "");
+    String period = q.getOrDefault("period", "");
     Map<String, Account> byId = AccountsRule.index(accounts.findAll());
     List<InvoiceView> out = new ArrayList<>();
     for (UsageRecord u : usage.findAll()) {
@@ -52,8 +54,17 @@ public class InvoicesController {
     return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(new InvoiceView.Page(out));
   }
 
-  /** httpd.h parse_target: a repeated query key keeps its last value. */
-  private static String last(String[] values) {
-    return values == null || values.length == 0 ? "" : values[values.length - 1];
+  /**
+   * httpd.h parse_target on the raw query string: split on '&' then the first '=', no
+   * percent-decoding, a repeated key keeps its last value, and the body is never read.
+   */
+  static Map<String, String> parseQuery(String qs) {
+    Map<String, String> out = new HashMap<>();
+    if (qs == null) return out;
+    for (String kv : qs.split("&", -1)) {
+      int eq = kv.indexOf('=');
+      if (eq >= 0) out.put(kv.substring(0, eq), kv.substring(eq + 1));
+    }
+    return out;
   }
 }

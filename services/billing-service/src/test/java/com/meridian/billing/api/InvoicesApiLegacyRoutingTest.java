@@ -34,6 +34,24 @@ class InvoicesApiLegacyRoutingTest {
   }
 
   @Test
+  void filtersAreNotPercentDecoded() {
+    ResponseEntity<String> res = http.getForEntity(
+        java.net.URI.create(http.getRootUri() + "/invoices?acct=%42EACON-004417"), String.class);
+    assertThat(res.getStatusCode().value()).isEqualTo(404);
+    assertThat(res.getBody()).isEqualTo("{\"invoices\":[]}");
+  }
+
+  @Test
+  void formBodyIsNotAFilter() {
+    HttpHeaders h = new HttpHeaders();
+    h.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
+    ResponseEntity<String> res = http.exchange("/invoices?period=2026-07", HttpMethod.POST,
+        new HttpEntity<>("acct=NOPE-000000", h), String.class);
+    assertThat(res.getStatusCode().value()).isEqualTo(200);
+    assertThat(res.getBody()).contains("BEACON-004417");
+  }
+
+  @Test
   void anyAcceptHeaderGetsJson() {
     HttpHeaders h = new HttpHeaders();
     h.set(HttpHeaders.ACCEPT, "text/html");
