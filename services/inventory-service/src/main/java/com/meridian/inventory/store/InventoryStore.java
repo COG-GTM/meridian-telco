@@ -1,5 +1,6 @@
 package com.meridian.inventory.store;
 
+import com.meridian.contracts.events.UsageRecorded;
 import com.meridian.inventory.ingest.MediationDrop.Circuit;
 import com.meridian.inventory.ingest.MediationDrop.Location;
 import com.meridian.inventory.ingest.MediationDrop.Site;
@@ -110,13 +111,16 @@ public class InventoryStore {
         });
   }
 
-  public void markPublished(List<String[]> acctPeriods, Instant at) {
+  /** Marks the stored row published only if it still holds the value that was sent. */
+  public void markPublished(List<UsageRecorded> sent, Instant at) {
     Timestamp ts = Timestamp.from(at);
-    jdbc.batchUpdate("UPDATE usage_record SET published_at = ? WHERE acct_id = ? AND period = ?",
-        acctPeriods, 500, (ps, k) -> {
+    jdbc.batchUpdate("UPDATE usage_record SET published_at = ? WHERE acct_id = ? AND period = ? "
+        + "AND usage_mb = ? AND recorded_at = ?", sent, 500, (ps, e) -> {
           ps.setTimestamp(1, ts);
-          ps.setString(2, k[0]);
-          ps.setString(3, k[1]);
+          ps.setString(2, e.acctId());
+          ps.setString(3, e.period());
+          ps.setLong(4, e.usageMb());
+          ps.setTimestamp(5, Timestamp.from(e.recordedAt()));
         });
   }
 
@@ -170,6 +174,11 @@ public class InventoryStore {
       return new UsageRow(rs.getString(1), rs.getString(2), rs.getLong(3), rs.getString(4),
           rs.getTimestamp(5).toInstant(), pub == null ? null : pub.toInstant());
     }
+  }
+
+  public List<UsageRow> unpublishedUsage() {
+    return jdbc.query("SELECT acct_id, period, usage_mb, source, recorded_at, published_at FROM usage_record "
+        + "WHERE published_at IS NULL ORDER BY recorded_at, seq", UsageRow::map);
   }
 
   public List<UsageRow> usage() {

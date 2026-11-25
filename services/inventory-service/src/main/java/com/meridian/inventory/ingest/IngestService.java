@@ -62,6 +62,8 @@ public class IngestService {
       MediationDrop drop = MediationDrop.load(dir);
       if (drop.siteRows().isEmpty()) {
         log.error("no site telemetry found in {}", dir);
+        // inventory-api loaded locations.csv on its own, independent of the site feed
+        tx.executeWithoutResult(s -> store.replaceLocations(drop.locations()));
         return Optional.empty();
       }
       IngestSummary summary = MediationRun.summarize(drop);
@@ -75,7 +77,7 @@ public class IngestService {
         store.finishRun(id, Instant.now(), summary.sitesLoaded(), summary.circuitsLoaded(),
             locations.size(), usage.size(), summary.legacyReport());
       });
-      int published = publish(usage, started);
+      int published = publishPending();
       log.info("{}  locations loaded  : {}\n  usage records     : {} ({} published)", summary.legacyReport(),
           locations.size(), usage.size(), published);
       return Optional.of(new IngestResult(summary, locations.size(), usage.size(), published));
@@ -84,13 +86,27 @@ public class IngestService {
     }
   }
 
-  private int publish(List<MediationDrop.Usage> usage, Instant recordedAt) {
-    if (!publisher.enabled() || usage.isEmpty()) return 0;
-    List<UsageRecorded> events = usage.stream()
-        .map(u -> new UsageRecorded(u.acctId(), u.period(), u.usageMb(), USAGE_SOURCE, recordedAt))
+  /** inventory-api startup: serve locations.csv from the drop as it is now. */
+  public int refreshLocations() {
+    List<MediationDrop.Location> locations = new MediationDrop(dataDir, List.of(), List.of(),
+        TelemetryCsv.read(dataDir.resolve("locations.csv")), List.of()).locations();
+    tx.executeWithoutResult(s -> store.replaceLocations(locations));
+    return locations.size();
+  }
+
+  /**
+   * Publishes every stored usage record billing has not acknowledged yet: this drop's rows and any
+   * left over from an earlier run whose publish failed. One event per (acct, period), carrying the
+   * stored (latest) value.
+   */
+  private int publishPending() {
+    if (!publisher.enabled()) return 0;
+    List<UsageRecorded> events = store.unpublishedUsage().stream()
+        .map(u -> new UsageRecorded(u.acctId(), u.period(), u.usageMb(), u.source(), u.recordedAt()))
         .toList();
+    if (events.isEmpty()) return 0;
     List<UsageRecorded> acked = publisher.publish(events);
-    store.markPublished(acked.stream().map(e -> new String[] {e.acctId(), e.period()}).toList(), Instant.now());
+    store.markPublished(acked, Instant.now());
     return acked.size();
   }
 }
