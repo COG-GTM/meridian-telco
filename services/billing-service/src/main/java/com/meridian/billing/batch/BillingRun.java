@@ -14,7 +14,8 @@ import org.springframework.context.ConfigurableApplicationContext;
  *
  * <p>By default it reads the flat files, like the legacy binary, and needs no database (this is
  * what vantage-telco parity runs against). With {@code --db} it reads accounts and usage from the
- * billing PostgreSQL store instead and records the run in {@code register_run}/{@code invoice}.
+ * billing PostgreSQL store instead and records the run in {@code register_run}/{@code invoice};
+ * the usage feed listener is never started by a batch run.
  */
 public final class BillingRun {
 
@@ -47,7 +48,7 @@ public final class BillingRun {
       try (ConfigurableApplicationContext ctx = new SpringApplicationBuilder(BillingServiceApplication.class)
           .web(WebApplicationType.NONE)
           .properties("spring.main.banner-mode=off", "spring.main.log-startup-info=false",
-              "logging.level.root=WARN")
+              "logging.level.root=WARN", "meridian.kafka.enabled=false")
           .run()) {
         text = ctx.getBean(RegisterJob.class).run(o.period(), o.json()).text();
       }
