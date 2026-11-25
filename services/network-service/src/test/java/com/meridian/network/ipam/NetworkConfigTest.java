@@ -3,9 +3,12 @@ package com.meridian.network.ipam;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.meridian.contracts.testkit.MeridianRoot;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /** The conf files bin/ipam ignores, parsed and cross-checked against the checked-in devices.csv. */
 class NetworkConfigTest {
@@ -73,5 +76,25 @@ class NetworkConfigTest {
     assertThat(a.devicesNotPolled()).extracting(ConfigAnalysis.DeviceRef::deviceName).containsExactly("b");
     assertThat(a.devicesInReservedRanges()).containsExactly(
         new ConfigAnalysis.DeviceInRange("b", "10.20.251.7", "10.20.251.0/24", "lab"));
+  }
+
+  @Test
+  void deviceFileWithByteOrderMarkKeepsTheFirstColumn(@TempDir Path tmp) throws Exception {
+    Path csv = tmp.resolve("devices.csv");
+    Files.writeString(csv, "\uFEFFdevice_name,region,role,mgmt_ip,site_cd,external_bgp\n"
+        + "a,NE-04,olt,10.20.1.1,S,1\n", StandardCharsets.UTF_8);
+    assertThat(NetworkFiles.readDevices(csv)).containsExactly(new Device(1, "a", "NE-04", "olt", "10.20.1.1", "S", true));
+  }
+
+  @Test
+  void targetOnDuplicateAddressMatchesAnyDeviceThere() {
+    List<Device> dup = List.of(
+        new Device(1, "a", "NE-04", "olt", "10.20.1.1", "S", false),
+        new Device(2, "b", "NE-04", "olt", "10.20.1.1", "S", false));
+    for (List<Device> order : List.of(dup, dup.reversed())) {
+      ConfigAnalysis a = ConfigAnalysis.of(order, ranges, List.of(
+          new SnmpTarget(0, "10.20.1.1", 60, "b"), new SnmpTarget(1, "10.20.1.1", 60, "c")));
+      assertThat(a.targetHostMismatches()).extracting(ConfigAnalysis.HostMismatch::targetHost).containsExactly("c");
+    }
   }
 }

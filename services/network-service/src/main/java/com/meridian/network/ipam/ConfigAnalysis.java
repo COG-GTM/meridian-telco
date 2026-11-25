@@ -52,16 +52,17 @@ public record ConfigAnalysis(
         .map(d -> new DeviceRef(d.deviceName(), d.mgmtIp(), d.region(), d.role()))
         .toList();
 
-    Map<String, Device> byIp = new HashMap<>();
-    devices.forEach(d -> byIp.putIfAbsent(d.mgmtIp(), d));
+    Map<String, List<Device>> byIp = new HashMap<>();
+    devices.forEach(d -> byIp.computeIfAbsent(d.mgmtIp(), k -> new ArrayList<>()).add(d));
     List<SnmpTarget> orphans = new ArrayList<>();
     List<HostMismatch> mismatches = new ArrayList<>();
     for (SnmpTarget t : targets) {
       switch (byIp.get(t.ip())) {
         case null -> orphans.add(t);
-        case Device d when t.host() != null && !t.host().equals(d.deviceName()) ->
-            mismatches.add(new HostMismatch(t.position(), t.ip(), t.host(), d.deviceName()));
-        case Device d -> { }
+        case List<Device> ds when t.host() != null
+            && ds.stream().noneMatch(d -> t.host().equals(d.deviceName())) ->
+            mismatches.add(new HostMismatch(t.position(), t.ip(), t.host(), ds.getFirst().deviceName()));
+        case List<Device> ds -> { }
       }
     }
     return new ConfigAnalysis(List.copyOf(usage), targets.size(), List.copyOf(inRanges), notPolled,
