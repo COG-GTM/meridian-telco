@@ -121,6 +121,10 @@
   .bar span { display: block; height: 100%; background: var(--brass); }
   footer { margin-top: 26px; color: #8b93a7; line-height: 1.6; }
   .err { color: var(--no); }
+  nav.links { margin-top: 12px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+  nav.links a { color: #4a556b; margin-right: 18px; text-decoration: none; border-bottom: 1px solid transparent; }
+  nav.links a:hover { border-bottom-color: var(--brass); }
+  nav.links a.on { color: var(--brass); border-bottom-color: var(--brass); }
 </style>
 </head>
 <body>
@@ -130,6 +134,7 @@
   <p>Enter the bandwidth a customer is asking for and this desk tool tells you whether their
      location can carry it today. Availability is read straight from the inventory of record
      &mdash; no reservations are held back.</p>
+  <nav class="links"><a href="index.html">Inventory</a><a href="capacity.html" class="on">Capacity</a><a href="billing.html">Invoices</a><a href="network.html">Network / IPAM</a></nav>
 </header>
 <main>
   <div class="controls">
@@ -185,8 +190,9 @@
     <code>mediation/capacity.cpp</code> &middot; figures in Mbps.
   </footer>
 </main>
+<script src="config.js"></script>
 <script>
-var API = "http://localhost:8081";
+var API = MERIDIAN_CONFIG.inventoryApi;
 var LOCATIONS = [];
 
 function requested() {
@@ -207,10 +213,10 @@ function render() {
     var ok = l.AVAIL_CAP_MBPS >= need;
     if (ok) serviceable++;
     rows += "<tr class='" + (first ? "first" : "") + "'>" +
-      "<td class='code'>" + l.LOC_CD + "</td>" +
-      "<td class='cust'>" + l.CUST_NM + "</td>" +
-      "<td class='loc'>" + l.LOC_NM + "</td>" +
-      "<td>" + l.MARKET_CD + "</td>" +
+      "<td class='code'>" + esc(l.LOC_CD) + "</td>" +
+      "<td class='cust'>" + esc(l.CUST_NM) + "</td>" +
+      "<td class='loc'>" + esc(l.LOC_NM) + "</td>" +
+      "<td>" + esc(l.MARKET_CD) + "</td>" +
       "<td class='num'>" + l.TOTAL_CAP_MBPS.toLocaleString() + "</td>" +
       "<td class='num'>" + l.ALLOC_CAP_MBPS.toLocaleString() + "</td>" +
       "<td class='num avail'>" + l.AVAIL_CAP_MBPS.toLocaleString() +
@@ -239,7 +245,7 @@ fetch(API + "/capacity").then(function (r) { return r.json(); }).then(function (
   });
   render();
 }).catch(function (e) {
-  document.getElementById("err").textContent = "inventory-api unreachable on :8081 (" + e + ")";
+  document.getElementById("err").textContent = "inventory-api unreachable at " + API + " (" + e + ")";
 });
 
 ["requested", "market", "q"].forEach(function (id) {

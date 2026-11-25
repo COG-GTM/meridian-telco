@@ -1,6 +1,25 @@
 meridian oss
 ============
 
+java 21 services (replacing the C++ binaries below; see MIGRATION_PROGRESS.md)
+
+  build:   mvn verify                  (Java 21, Spring Boot 3.5; golden tests vs contracts/)
+  run:     tools/run-local.sh          (Postgres + Kafka via ops/compose.yaml, the three
+                                        services, dashboard on :8000; `stop` to tear down)
+  parity:  tools/parity/http-diff.sh   (live services vs frozen contracts/http)
+           services/billing-service/tools/register-diff.sh 2026-07   (C++ vs Java register)
+           services/inventory-service/tools/parity.sh                (C++ vs Java inventory)
+
+  inventory-service  :8081  /sites /circuits /capacity, scheduled ingest of data/,
+                            publishes usage to Kafka topic meridian.usage.v1
+  billing-service    :8082  /invoices; billing-run batch (same CLI and --json feed);
+                            consumes meridian.usage.v1
+  network-service    :8084  /ipam/report /ipam/report.txt /devices /reserved-ranges /snmp-targets
+  db-migration              one-shot split of meridian.db + billing/accounts + network/ into
+                            the per-service PostgreSQL databases
+
+legacy C++ toolchain (fallback until decommission)
+
 build:  make
 run:    make run          (rebuilds meridian.db from data/)
 check:  make check        (billing rule checks, bin/billing-test)

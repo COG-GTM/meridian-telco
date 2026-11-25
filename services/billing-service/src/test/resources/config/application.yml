@@ -1,0 +1,16 @@
+# classpath:/config/application.yml overrides src/main/resources/application.yml key by key
+# (a test application.yml at the classpath root would replace it entirely).
+# Tests run against a throwaway Testcontainers Postgres (JDBC URL driver), seeded from the legacy
+# flat files.
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///billing
+    username: billing
+    password: billing
+meridian:
+  kafka:
+    enabled: false
+  billing:
+    seed:
+      accounts-dir: ${meridian.root:../..}/billing/accounts
+      usage-csv: ${meridian.root:../..}/data/usage.csv

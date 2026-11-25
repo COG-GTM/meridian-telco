@@ -1,0 +1,17 @@
+server:
+  port: 8084
+spring:
+  application:
+    name: network-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${NETWORK_DB_URL:jdbc:postgresql://localhost:5432/network}
+    username: ${NETWORK_DB_USER:network}
+    password: ${NETWORK_DB_PASSWORD:network}
+meridian:
+  # devices.csv, reserved-ranges.conf, snmp-polling.conf; loaded into Postgres at startup and on POST /ipam/refresh
+  network-dir: ${MERIDIAN_NETWORK_DIR:network}
+  network:
+    load-on-startup: ${MERIDIAN_NETWORK_LOAD_ON_STARTUP:true}

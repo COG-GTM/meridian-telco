@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.meridian</groupId>
+  <artifactId>meridian-parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>meridian oss (Java 21)</name>
+
+  <modules>
+    <module>platform/meridian-contracts</module>
+    <module>platform/db-migration</module>
+    <module>services/inventory-service</module>
+    <module>services/billing-service</module>
+    <module>services/network-service</module>
+  </modules>
+
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <commons-csv.version>1.12.0</commons-csv.version>
+    <!-- repo root, used by tests to read contracts/, data/, billing/accounts/, network/ -->
+    <meridian.root>${maven.multiModuleProjectDirectory}</meridian.root>
+    <!-- tests tagged "pending" are characterization/golden tests whose Java implementation
+         lands in a later phase; the owning phase removes the tag. -->
+    <surefire.excludedGroups>pending</surefire.excludedGroups>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.meridian</groupId>
+        <artifactId>meridian-contracts</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-csv</artifactId>
+        <version>${commons-csv.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <excludedGroups>${surefire.excludedGroups}</excludedGroups>
+            <systemPropertyVariables>
+              <meridian.root>${meridian.root}</meridian.root>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>
