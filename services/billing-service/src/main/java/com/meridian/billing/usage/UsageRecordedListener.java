@@ -24,6 +24,9 @@ public class UsageRecordedListener {
 
   private static final Logger log = LoggerFactory.getLogger(UsageRecordedListener.class);
   private static final Pattern PERIOD = Pattern.compile("\\d{4}-\\d{2}");
+  private static final Pattern ACCT_ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,63}");
+  /** Keeps every derived charge inside the invoice NUMERIC(14,2) columns (about 9.8e9 of overage). */
+  static final long MAX_USAGE_MB = 1_000_000_000_000L;
 
   private final UsageRepository usage;
   private final ObjectMapper json;
@@ -35,6 +38,10 @@ public class UsageRecordedListener {
 
   @KafkaListener(topics = Topics.USAGE_V1, groupId = "${meridian.kafka.group-id:billing-service}")
   public void onUsage(ConsumerRecord<String, String> rec) {
+    if (rec.value() == null) {
+      skip(rec, "tombstone");
+      return;
+    }
     UsageRecorded u;
     try {
       JsonNode node = json.readTree(rec.value());
@@ -48,8 +55,8 @@ public class UsageRecordedListener {
       skip(rec, "unreadable JSON");
       return;
     }
-    if (u.acctId() == null || u.acctId().isBlank() || u.period() == null
-        || !PERIOD.matcher(u.period()).matches() || u.usageMb() < 0) {
+    if (u.acctId() == null || !ACCT_ID.matcher(u.acctId()).matches() || u.period() == null
+        || !PERIOD.matcher(u.period()).matches() || u.usageMb() < 0 || u.usageMb() > MAX_USAGE_MB) {
       skip(rec, "invalid fields");
       return;
     }
