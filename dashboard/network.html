@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Meridian OSS - Management Addressing (IPAM)</title>
+<style>
+body { font-family: Verdana, Geneva, sans-serif; font-size: 12px; margin: 0; background: #eceff1; color: #102027; }
+h1 { background: #1b3a4b; color: #fff; margin: 0; padding: 14px 18px; font-size: 16px; letter-spacing: 1px; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #37474f; margin: 22px 0 6px; }
+h2 small { text-transform: none; letter-spacing: 0; color: #78909c; font-weight: normal; }
+.wrap { padding: 18px; }
+.tiles { display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+.tile { background: #fff; border: 1px solid #b0bec5; padding: 12px 16px; min-width: 150px; }
+.tile .n { font-size: 26px; font-weight: bold; }
+.tile .l { color: #546e7a; text-transform: uppercase; font-size: 10px; }
+.tile.warn .n { color: #e65100; }
+table { border-collapse: collapse; background: #fff; width: 100%; }
+th { background: #cfd8dc; text-align: left; padding: 5px 8px; font-size: 11px; }
+td { padding: 4px 8px; border-top: 1px solid #eceff1; }
+td.num { text-align: right; }
+tr:hover td { background: #f5f5f5; }
+tr.reserved td { background: #fff3e0; }
+.cols { display: flex; gap: 18px; flex-wrap: wrap; }
+.cols > div { flex: 1; min-width: 340px; }
+.none { color: #78909c; font-style: italic; }
+pre { background: #fff; border: 1px solid #b0bec5; padding: 10px 12px; margin: 0; font-size: 11px; }
+.err { color: #b71c1c; }
+.nav { background: #26505f; padding: 6px 18px; }
+.nav a { color: #cfd8dc; margin-right: 16px; text-decoration: none; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+.nav a:hover { color: #fff; }
+.nav a.on { color: #fff; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>MERIDIAN OSS &mdash; MANAGEMENT ADDRESSING (IPAM)</h1>
+<div class="nav"><a href="index.html">Inventory</a><a href="capacity.html">Capacity</a><a href="billing.html">Invoices</a><a href="network.html" class="on">Network / IPAM</a></div>
+<div class="wrap">
+  <div class="tiles">
+    <div class="tile"><div class="n" id="supernet">-</div><div class="l">Supernet</div></div>
+    <div class="tile"><div class="n" id="devices">-</div><div class="l">Devices</div></div>
+    <div class="tile"><div class="n" id="inUse">-</div><div class="l">Addresses in use</div></div>
+    <div class="tile" id="dupTile"><div class="n" id="dupes">-</div><div class="l">Internal duplicates</div></div>
+    <div class="tile warn"><div class="n" id="inReserved">-</div><div class="l" id="inReservedLbl">Inside reserved range</div></div>
+    <div class="tile warn"><div class="n" id="notPolled">-</div><div class="l">Devices not SNMP polled</div></div>
+  </div>
+  <p id="err" class="err"></p>
+
+  <h2>Legacy report <small>&mdash; same figures as <code>bin/ipam</code> (<a id="txtLink" href="#">plain text</a>)</small></h2>
+  <div class="cols">
+    <div>
+      <table>
+        <thead><tr><th>SUBNET</th><th>DEVICES</th></tr></thead>
+        <tbody id="subnets"></tbody>
+      </table>
+    </div>
+    <div><pre id="legacyText">-</pre></div>
+  </div>
+
+  <h2>Reserved ranges <small>&mdash; from <code>reserved-ranges.conf</code></small></h2>
+  <table>
+    <thead><tr><th>CIDR</th><th>PURPOSE</th><th>DEVICES INSIDE</th></tr></thead>
+    <tbody id="ranges"></tbody>
+  </table>
+
+  <h2>Devices inside reserved ranges</h2>
+  <table>
+    <thead><tr><th>DEVICE</th><th>MGMT_IP</th><th>RANGE</th><th>PURPOSE</th></tr></thead>
+    <tbody id="inRanges"></tbody>
+  </table>
+
+  <h2>SNMP polling <small>&mdash; <code>snmp-polling.conf</code> vs <code>devices.csv</code>, <span id="targetCount">-</span> targets</small></h2>
+  <div class="cols">
+    <div>
+      <table>
+        <thead><tr><th colspan="4">DEVICES NOT POLLED</th></tr>
+               <tr><th>DEVICE</th><th>MGMT_IP</th><th>REGION</th><th>ROLE</th></tr></thead>
+        <tbody id="notPolledRows"></tbody>
+      </table>
+    </div>
+    <div>
+      <table>
+        <thead><tr><th colspan="3">POLLED TARGETS WITH NO DEVICE</th></tr>
+               <tr><th>POS</th><th>IP</th><th>HOST</th></tr></thead>
+        <tbody id="orphanRows"></tbody>
+      </table>
+      <br>
+      <table>
+        <thead><tr><th colspan="4">TARGET HOST LABEL DIFFERS FROM DEVICE</th></tr>
+               <tr><th>POS</th><th>IP</th><th>TARGET HOST</th><th>DEVICE</th></tr></thead>
+        <tbody id="mismatchRows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="config.js"></script>
+<script>
+var API = MERIDIAN_CONFIG.networkApi;
+function esc(v) {
+  return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function rows(id, list, cols, span) {
+  document.getElementById(id).innerHTML = list.length ? list.map(function (x) {
+    return "<tr>" + cols.map(function (c) { return "<td>" + esc(x[c]) + "</td>"; }).join("") + "</tr>";
+  }).join("") : "<tr><td colspan='" + span + "' class='none'>none</td></tr>";
+}
+document.getElementById("txtLink").href = API + "/ipam/report.txt";
+fetch(API + "/ipam/report").then(function (r) {
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}).then(function (d) {
+  var l = d.legacy, c = d.config;
+  document.getElementById("supernet").textContent = l.supernet;
+  document.getElementById("devices").textContent = l.devices;
+  document.getElementById("inUse").textContent = l.addressesInUse;
+  document.getElementById("dupes").textContent = l.internalDuplicates;
+  if (l.internalDuplicates > 0) document.getElementById("dupTile").className = "tile warn";
+  document.getElementById("inReserved").textContent = l.addressesInsideReserved;
+  document.getElementById("inReservedLbl").textContent = "Inside reserved " + l.reservedRange;
+  document.getElementById("notPolled").textContent = c.devicesNotPolled.length;
+  document.getElementById("targetCount").textContent = c.snmpTargets;
+  document.getElementById("subnets").innerHTML = l.subnets.map(function (s) {
+    return "<tr" + (s.subnet === l.reservedRange ? " class='reserved'" : "") + "><td>" + esc(s.subnet) +
+           "</td><td class='num'>" + s.devices + "</td></tr>";
+  }).join("");
+  rows("ranges", c.reservedRanges, ["cidr", "purpose", "devicesInside"], 3);
+  rows("inRanges", c.devicesInReservedRanges, ["deviceName", "mgmtIp", "cidr", "purpose"], 4);
+  rows("notPolledRows", c.devicesNotPolled, ["deviceName", "mgmtIp", "region", "role"], 4);
+  rows("orphanRows", c.targetsWithoutDevice, ["position", "ip", "host"], 3);
+  rows("mismatchRows", c.targetHostMismatches, ["position", "ip", "targetHost", "deviceName"], 4);
+}).catch(function (e) { document.getElementById("err").textContent = "network-service unreachable at " + API + " (" + e + ")"; });
+fetch(API + "/ipam/report.txt").then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
+  if (t) document.getElementById("legacyText").textContent = t;
+});
+</script>
+</body>
+</html>

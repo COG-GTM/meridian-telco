@@ -1,0 +1,10 @@
+DUPLICATE 10.20.4.17 core-dup
+DUPLICATE 10.20.251.1 lab-dup
+supernet 10.20.0.0/16
+devices 9, addresses in use 7, internal duplicates 2
+addresses inside reserved 10.20.250.0/24: 1
+  10.20.0.0/24       2
+  10.20.250.0/24     1
+  10.20.251.0/24     2
+  10.20.4.0/24       3
+  10.20.44.0/24      1
