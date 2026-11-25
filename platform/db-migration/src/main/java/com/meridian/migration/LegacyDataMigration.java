@@ -227,13 +227,18 @@ public final class LegacyDataMigration {
 
   /**
    * data/usage.csv into billing's usage_record, so billing has the period's usage before the Kafka feed runs.
-   * Like the SeedLoader, a row already delivered by the feed is never overwritten.
+   * A repeated account/period keeps the last row (a correction, as on the feed); a row already
+   * delivered by the feed is never overwritten. A missing file fails verification.
    */
   private void loadUsage(Path csv, Connection dst) throws SQLException, IOException {
-    if (!Files.isRegularFile(csv)) return;
+    if (!Files.isRegularFile(csv)) {
+      rows.put("usage_record", 0);
+      verified.put("usage_record", false);
+      return;
+    }
     Map<String, Long> want = new LinkedHashMap<>();
     for (Map<String, String> r : readCsv(csv)) {
-      want.putIfAbsent(r.get("ACCT_ID") + "|" + r.get("PERIOD"), Atof.integer(r.get("USAGE_MB"), 0));
+      want.put(r.get("ACCT_ID") + "|" + r.get("PERIOD"), Atof.integer(r.get("USAGE_MB"), 0));
     }
     try (PreparedStatement ps = dst.prepareStatement("INSERT INTO usage_record (acct_id, period, seq, usage_mb, "
         + "source) VALUES (?, ?, nextval('usage_record_seq'), ?, ?) ON CONFLICT (acct_id, period) DO NOTHING")) {
