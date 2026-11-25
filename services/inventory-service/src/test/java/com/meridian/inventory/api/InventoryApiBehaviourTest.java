@@ -33,6 +33,15 @@ class InventoryApiBehaviourTest {
   }
 
   @Test
+  void percentEncodedRoutesAreUnknownLikeHttpd() throws Exception {
+    for (String path : new String[] {"/s%69tes", "/c%69rcuits", "/capac%69ty"}) {
+      ResponseEntity<String> res = http.getForEntity(new java.net.URI(path), String.class);
+      assertThat(res.getStatusCode().value()).as(path).isEqualTo(404);
+      assertThat(res.getBody()).isEqualTo("{\"error\":\"not found\"}");
+    }
+  }
+
+  @Test
   void sqlInjectionInFiltersMatchesNothing() {
     assertThat(http.getForEntity("/sites?REGION_CD=x'%20OR%20'1'='1", String.class).getBody())
         .isEqualTo("{\"count\":0,\"sites\":[]}");

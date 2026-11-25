@@ -44,6 +44,7 @@ public class InventoryController {
 
   @RequestMapping({"/sites", "/sites*", "/sites*/**"})
   public ResponseEntity<String> sites(HttpServletRequest req) {
+    if (!routedLikeHttpd(req, "/sites")) return notFound();
     Map<String, String> q = LegacyQuery.parse(req.getQueryString());
     List<Site> rows;
     if (q.containsKey("REGION_CD")) {
@@ -78,6 +79,7 @@ public class InventoryController {
 
   @RequestMapping({"/circuits", "/circuits*", "/circuits*/**"})
   public ResponseEntity<String> circuits(HttpServletRequest req) {
+    if (!routedLikeHttpd(req, "/circuits")) return notFound();
     Map<String, String> q = LegacyQuery.parse(req.getQueryString());
     List<Circuit> rows = q.containsKey("CIRCUIT_ID") ? store.circuit(q.get("CIRCUIT_ID")) : store.circuits();
     StringBuilder out = new StringBuilder("{\"count\":").append(rows.size())
@@ -103,6 +105,7 @@ public class InventoryController {
   /** Sales capacity check: one row per serviceable location; requested= is the quoted mbps. */
   @RequestMapping({"/capacity", "/capacity*", "/capacity*/**"})
   public ResponseEntity<String> capacity(HttpServletRequest req) {
+    if (!routedLikeHttpd(req, "/capacity")) return notFound();
     Map<String, String> q = LegacyQuery.parse(req.getQueryString());
     int requested = q.containsKey("requested") ? TelemetryCsv.toInt(q.get("requested")) : 0;
     String market = q.getOrDefault("market", "");
@@ -142,6 +145,11 @@ public class InventoryController {
     } catch (NumberFormatException | ArithmeticException e) {
       return Optional.empty(); // exponent out of range: SQLite reads it as +-Inf, no match
     }
+  }
+
+  /** httpd.h matches the raw request path; Spring matches it percent-decoded (/s%69tes). */
+  private static boolean routedLikeHttpd(HttpServletRequest req, String prefix) {
+    return req.getRequestURI().startsWith(prefix);
   }
 
   /** Every other path: httpd.h answers 404 {"error":"not found"}. */

@@ -73,7 +73,7 @@ fetch() { # port path out
 PATHS=()
 for req in contracts/http/{sites,circuits,capacity,inventory-}*.request; do PATHS+=("$(cat "$req")"); done
 PATHS+=("/sites?STATUS_CD=1" "/sites?STATUS_CD=2" "/sites?REGION_CD=NOPE" "/circuits?CIRCUIT_ID=NOPE"
-  "/sites?STATUS_CD=1e0" "/sites?STATUS_CD=+1" "/sites?STATUS_CD=0x3" "/sites?STATUS_CD=1.5"
+  "/sites?STATUS_CD=1e0" "/sites?STATUS_CD=+1" "/sites?STATUS_CD=0x3" "/sites?STATUS_CD=1.5" "/s%69tes" "/c%69rcuits" "/capac%69ty"
   "/capacity?requested=0" "/capacity?requested=100000" "/capacity?market=NOPE" "/sites/x" "/")
 i=0
 for path in "${PATHS[@]}"; do
