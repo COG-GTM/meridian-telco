@@ -12,6 +12,10 @@ th { background: #cfd8dc; text-align: left; padding: 5px 8px; font-size: 11px; }
 td { padding: 4px 8px; border-top: 1px solid #eceff1; }
 td.num { text-align: right; }
 .err { color: #b71c1c; }
+.nav { background: #26505f; padding: 6px 18px; }
+.nav a { color: #cfd8dc; margin-right: 16px; text-decoration: none; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+.nav a:hover { color: #fff; }
+.nav a.on { color: #fff; font-weight: bold; }
 .tot { font-weight: bold; background: #fffde7; }
 .filters { margin-bottom: 10px; }
 .filters input { width: 180px; }
@@ -19,6 +23,7 @@ td.num { text-align: right; }
 </head>
 <body>
 <h1>MERIDIAN OSS &mdash; INVOICE REGISTER</h1>
+<div class="nav"><a href="index.html">Inventory</a><a href="capacity.html">Capacity</a><a href="billing.html" class="on">Invoices</a><a href="network.html">Network / IPAM</a></div>
 <div class="wrap">
   <p class="filters">
     Period: <select id="period"><option>2026-07</option><option>2026-06</option></select>
@@ -34,8 +39,9 @@ td.num { text-align: right; }
     <tbody id="rows"></tbody>
   </table>
 </div>
+<script src="config.js"></script>
 <script>
-var API = "http://localhost:8082";
+var API = MERIDIAN_CONFIG.billingApi;
 function money(v) { return "$" + v.toFixed(2); }
 function taxCell(i) {
   var parts = [i.FED_TAX_LBL + " " + money(i.FED_TAX)];
@@ -59,7 +65,7 @@ function load() {
     html += "<tr class='tot'><td colspan='10'>TOTAL BILLED</td><td class='num'>" + money(total) + "</td></tr>";
     document.getElementById("rows").innerHTML = html;
     document.getElementById("err").textContent = "";
-  }).catch(function (e) { document.getElementById("err").textContent = "invoice-api unreachable on :8082 (" + e + ")"; });
+  }).catch(function (e) { document.getElementById("err").textContent = "invoice-api unreachable at " + API + " (" + e + ")"; });
 }
 document.getElementById("period").onchange = load;
 document.getElementById("go").onclick = load;

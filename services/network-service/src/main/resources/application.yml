@@ -11,4 +11,7 @@ spring:
     username: ${NETWORK_DB_USER:network}
     password: ${NETWORK_DB_PASSWORD:network}
 meridian:
+  # devices.csv, reserved-ranges.conf, snmp-polling.conf; loaded into Postgres at startup and on POST /ipam/refresh
   network-dir: ${MERIDIAN_NETWORK_DIR:network}
+  network:
+    load-on-startup: ${MERIDIAN_NETWORK_LOAD_ON_STARTUP:true}
