@@ -1,5 +1,8 @@
 package com.meridian.billing.rules;
 
+import static com.meridian.billing.calc.Money.d;
+
+import com.meridian.billing.calc.Money;
 import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
 
@@ -7,11 +10,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class LinesRule {
 
+  private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+
   public BigDecimal multiLinePct(int lineCount) {
-    throw new UnsupportedOperationException("Phase 3");
+    if (lineCount >= 10) return BigDecimal.TEN;
+    if (lineCount >= 3) return BigDecimal.valueOf(5);
+    return BigDecimal.ZERO;
   }
 
   public BigDecimal multiLineDiscount(BigDecimal recurringCharge, int lineCount) {
-    throw new UnsupportedOperationException("Phase 3");
+    return Money.round(d(recurringCharge).multiply(d(multiLinePct(lineCount))).divide(d(HUNDRED)));
   }
 }
